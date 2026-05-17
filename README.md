@@ -39,7 +39,7 @@ Works anywhere fish or zsh runs — iTerm2, Terminal.app, Alacritty, Kitty, Warp
 
 ## Install
 
-Requires fish ≥ 3.0 or zsh ≥ 5.0.
+Requires zsh ≥ 5.0 or fish ≥ 3.0.
 
 **fish:**
 ```fish
