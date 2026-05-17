@@ -2,6 +2,12 @@
 ._*
 __MACOSX/
 
+# Marketing files (local only)
+CHECKLIST.md
+LAUNCH.md
+linkedin_post.md
+x_posts.md
+
 # Editor cruft
 *.swp
 *.swo
