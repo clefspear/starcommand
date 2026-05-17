@@ -2,7 +2,7 @@
 
 *Created By [Peter Azmy](https://github.com/clefspear)*
 
-spaceport launches a different rocket every time you open a shell — a fish and zsh greeting that turns every new terminal into a unique generative artifact. Each rocket's colors, stars, and flame are mathematically linked — change the palette, and the entire constellation changes with it.
+spaceport launches a different rocket every time you open a shell — a zsh and fish greeting that turns every new terminal into a unique generative artifact. Each rocket's colors, stars, and flame are mathematically linked — change the palette, and the entire constellation changes with it.
 
 ![hero](docs/hero.png)
 
