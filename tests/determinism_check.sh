@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # determinism_check.sh
-# Verify fish and zsh produce byte-identical rocket output for fixed palettes.
+# Verify zsh and fish produce byte-identical rocket output for fixed palettes.
 set -euo pipefail
 
 REPO_DIR="$(cd "$(dirname "$0")/.." && pwd)"

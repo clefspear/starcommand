@@ -129,7 +129,7 @@ Each palette hex code splits into 3 bytes (R, G, B), giving 18 bytes per rocket.
 
 No RNG after color generation. Reproducible from the palette alone.
 
-Verified deterministic across fish and zsh — run `bash tests/determinism_check.sh` to reproduce.
+Verified deterministic across zsh and fish — run `bash tests/determinism_check.sh` to reproduce.
 
 ---
 
