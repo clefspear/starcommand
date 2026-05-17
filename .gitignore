@@ -1,0 +1,10 @@
+.DS_Store
+._*
+__MACOSX/
+
+# Editor cruft
+*.swp
+*.swo
+*~
+.idea/
+.vscode/

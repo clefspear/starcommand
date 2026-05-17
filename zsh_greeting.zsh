@@ -1,0 +1,865 @@
+# zsh_greeting.zsh — Rocketfish zsh port
+# Deterministic rocket + starfield greeting for zsh
+# Ported from fish_greeting.fish
+# Source this from .zshrc:  source ~/.config/zsh/zsh_greeting.zsh
+
+_rkt_random() {
+  emulate -L zsh
+  local min=${1:-0} max=${2:-32767}
+  echo $(( RANDOM % (max - min + 1) + min ))
+}
+
+_rkt_set_color() {
+  local bold=false italic=false
+  local args=()
+  for arg in "$@"; do
+    case "$arg" in
+      --bold) bold=true ;;
+      --italics) italic=true ;;
+      normal|reset) printf '\e[m'; return ;;
+      *) args+=("$arg") ;;
+    esac
+  done
+  local codes=()
+  $bold && codes+=('1')
+  $italic && codes+=('3')
+  if (( ${#args[@]} > 0 )); then
+    local hex="${args[1]}"
+    case "$hex" in
+      grey)   hex="808080" ;;
+      cyan)   hex="00FFFF" ;;
+      yellow) hex="FFFF00" ;;
+      0F0)    hex="00FF00" ;;
+      FFF)    hex="FFFFFF" ;;
+      [0-9a-fA-F][0-9a-fA-F][0-9a-fA-F])
+        hex="${hex:0:1}${hex:0:1}${hex:1:1}${hex:1:1}${hex:2:1}${hex:2:1}" ;;
+    esac
+    local r=$((16#${hex:0:2}))
+    local g=$((16#${hex:2:2}))
+    local b=$((16#${hex:4:2}))
+    codes+=("38;2;$r;$g;$b")
+  fi
+  local IFS=';'
+  printf '\e[%sm' "${codes[*]}"
+}
+
+_hsl_to_hex() {
+  printf '%s\n' "$1" "$2" "$3" | awk '{
+    h = $1; s = $2; l_in = $3
+    sat = s / 100
+    light = l_in / 100
+    c = (1 - (2*light - 1 < 0 ? -(2*light - 1) : 2*light - 1)) * sat
+    hp = h / 60
+    x = (hp - 2*int(hp/2) - 1)
+    if (x < 0) x = -x
+    x = 1 - x
+    x = c * x
+    m = light - c / 2
+    hi = int(h)
+    if (hi < 60) { r = c; g = x; b = 0 }
+    else if (hi < 120) { r = x; g = c; b = 0 }
+    else if (hi < 180) { r = 0; g = c; b = x }
+    else if (hi < 240) { r = 0; g = x; b = c }
+    else if (hi < 300) { r = x; g = 0; b = c }
+    else { r = c; g = 0; b = x }
+    ri = int((r + m) * 255 + 0.5)
+    gi = int((g + m) * 255 + 0.5)
+    bi = int((b + m) * 255 + 0.5)
+    printf "%02x%02x%02x\n", ri, gi, bi
+  }'
+}
+
+_rkt_load_settings() {
+  emulate -L zsh
+  local cfg="$HOME/.config/zsh/rocket_settings.zsh"
+  typeset -g _rkt_random_star_mode=white
+  typeset -g _rkt_favorite_star_mode=gold
+  typeset -g _rkt_terminal_theme=dark
+  typeset -g _rkt_favorite_weight=20
+  [[ -f "$cfg" ]] && source "$cfg"
+}
+
+_rkt_save_settings() {
+  emulate -L zsh
+  local cfg="$HOME/.config/zsh/rocket_settings.zsh"
+  mkdir -p "${cfg:h}"
+  printf 'typeset -g _rkt_random_star_mode=%s\n'   "${(q)_rkt_random_star_mode}"    > "$cfg"
+  printf 'typeset -g _rkt_favorite_star_mode=%s\n' "${(q)_rkt_favorite_star_mode}" >> "$cfg"
+  printf 'typeset -g _rkt_terminal_theme=%s\n'     "${(q)_rkt_terminal_theme}"     >> "$cfg"
+  printf 'typeset -g _rkt_favorite_weight=%s\n'    "${(q)_rkt_favorite_weight}"    >> "$cfg"
+}
+
+_rkt_print_option() {
+  emulate -L zsh
+  local active="$1"
+  shift
+  local -a opts=("$@")
+  printf '('
+  local first=1
+  for opt in "${opts[@]}"; do
+    (( first == 0 )) && printf ' | '
+    first=0
+    if [[ "$active" == "$opt" ]]; then
+      _rkt_set_color --bold --italics
+      printf '%s' "$opt"
+      _rkt_set_color normal
+    else
+      printf '%s' "$opt"
+    fi
+  done
+  printf ')'
+}
+
+_gen_rocket_palette() {
+  emulate -L zsh
+  local h_base=$(_rkt_random 0 359)
+  local scheme=$(_rkt_random 0 4)
+  local sat=$(_rkt_random 65 90)
+  local light=$(_rkt_random 55 72)
+  local -a offs
+  case $scheme in
+    0) offs=(0 60 120 180 240 300) ;;
+    1) offs=(0 50 110 180 230 290) ;;
+    2) offs=(0 70 130 200 250 310) ;;
+    3) offs=(0 45 115 180 235 295) ;;
+    *) offs=(0 65 125 190 245 310) ;;
+  esac
+  for off in "${offs[@]}"; do
+    local h=$(( (h_base + off) % 360 ))
+    _hsl_to_hex "$h" "$sat" "$light"
+  done
+}
+
+_rocket_record_history() {
+  emulate -L zsh
+  local file="$HOME/.config/zsh/rocket_history.txt"
+  mkdir -p "${file:h}"
+  echo "${(j: :)@}" >> "$file"
+  local lc=$(wc -l < "$file")
+  if (( lc > 100 )); then
+    tail -n 100 "$file" > "$file.tmp" && mv "$file.tmp" "$file"
+  fi
+}
+
+_rkt_neon_color() {
+  emulate -L zsh
+  local -a neons=(
+    FF0033 FF3300 FF6600 FF9900 FFBB00 FFDD00 FFFF00
+    CCFF00 99FF00 66FF00 33FF00 00FF33 00FF66 00FF99
+    00FFCC 00FFFF 00CCFF 0099FF 0066FF 0033FF 3300FF
+    6600FF 9900FF CC00FF FF00FF FF00CC FF0099 FF0066
+  )
+  echo "${neons[$(_rkt_random 1 ${#neons})]}"
+}
+
+_rkt_neon_color_light() {
+  emulate -L zsh
+  local -a neons=(
+    CC0029 CC2900 CC5200 CC7A00 CC9500 B8860B AAAA00
+    88AA00 668800 448800 228822 228B22 008844 008866
+    008B7F 008B8B 0077AA 1E6FB8 0055CC 0033AA 2200AA
+    4B0082 6622AA 7B1FA2 A020A0 AA0088 AD1457 AA0044
+  )
+  echo "${neons[$(_rkt_random 1 ${#neons})]}"
+}
+
+_palette_is_favorite() {
+  emulate -L zsh
+  local fav_file="$HOME/.config/zsh/rocket_favorites.txt"
+  [[ ! -f "$fav_file" ]] && return 1
+  local palette="$_rkt_tip $_rkt_win $_rkt_bdy $_rkt_top $_rkt_sds $_rkt_flm"
+  grep -Fxq "$palette" "$fav_file"
+}
+
+_rocket_print_star_row() {
+  emulate -L zsh
+  local n="$1" palette="$2"
+  local -a cs=("${(s: :)palette}")
+  if (( $# >= 3 )); then
+    printf '%s' "$3"
+  else
+    printf "%3d. " "$n"
+  fi
+  _rkt_set_color "$cs[1]"; printf '★ '
+  _rkt_set_color "$cs[2]"; printf '★ '
+  _rkt_set_color "$cs[3]"; printf '★ '
+  _rkt_set_color "$cs[4]"; printf '★ '
+  _rkt_set_color "$cs[5]"; printf '★ '
+  _rkt_set_color "$cs[6]"; printf '★'
+  _rkt_set_color normal
+  printf '  %s\n' "$palette"
+}
+
+_rocket_palette_bytes() {
+  emulate -L zsh
+  local color byte_hex
+  for color in $_rkt_tip $_rkt_win $_rkt_bdy $_rkt_top $_rkt_sds $_rkt_flm; do
+    for i in 1 3 5; do
+      byte_hex="${color:$((i-1)):2}"
+      printf "%d\n" $((16#$byte_hex))
+    done
+  done
+}
+
+_compute_star_positions() {
+  emulate -L zsh
+  if [[ ! -v _RKT_STAR_CANDIDATES ]]; then
+    typeset -g -a _RKT_STAR_CANDIDATES=(
+      0:0 0:1 0:2 0:3 0:4 0:5 0:6 0:7 0:8 0:9 0:10 0:11 0:12 0:13 0:14 0:15 0:16 0:17
+      1:0 1:1 1:2 1:3 1:4 1:5 1:6 1:7 1:9 1:10 1:11 1:12 1:13 1:14 1:15 1:16 1:17
+      2:0 2:1 2:2 2:3 2:4 2:5 2:6 2:10 2:11 2:12 2:13 2:14 2:15 2:16 2:17
+      3:0 3:1 3:2 3:3 3:4 3:5 3:11 3:12 3:13 3:14 3:15 3:16 3:17
+      4:0 4:1 4:2 4:3 4:4 4:12 4:13 4:14 4:15 4:16 4:17
+      5:0 5:1 5:2 5:3 5:4 5:12 5:13 5:14 5:15 5:16 5:17
+      6:0 6:1 6:2 6:3 6:4 6:6 6:7 6:8 6:9 6:10 6:12 6:13 6:14 6:15 6:16 6:17
+      7:0 7:1 7:2 7:6 7:7 7:9 7:10 7:14 7:15 7:16 7:17
+      8:0 8:1 8:3 8:4 8:6 8:7 8:9 8:10 8:12 8:13 8:15 8:16 8:17
+      9:0 9:1 9:15 9:16 9:17
+      11:0 11:1 11:2 11:3 11:4 11:5 11:6 11:7 11:8 11:9 11:10 11:11 11:12 11:13 11:14 11:15 11:16 11:17
+    )
+  fi
+  local total=${#_RKT_STAR_CANDIDATES}
+  local -a all_bytes=($(_rocket_palette_bytes))
+  local -a seen=()
+  local b i1 i2 idx pos
+  for b in "${all_bytes[@]}"; do
+    i1=$(( b % total ))
+    i2=$(( (b + 73) % total ))
+    for idx in $i1 $i2; do
+      pos="${_RKT_STAR_CANDIDATES[$((idx + 1))]}"
+      if (( ! ${seen[(Ie)$pos]} )); then
+        seen+=("$pos")
+      fi
+    done
+  done
+  printf '%s\n' "${seen[@]}"
+}
+
+_rkt_star_color_for_mode() {
+  emulate -L zsh
+  case $_rkt_star_mode in
+    gold)
+      if [[ "$_rkt_terminal_theme" == light ]]; then
+        echo B8860B
+      else
+        echo FFE600
+      fi
+      ;;
+    neon)
+      if [[ "$_rkt_terminal_theme" == light ]]; then
+        _rkt_neon_color_light
+      else
+        _rkt_neon_color
+      fi
+      ;;
+    *)
+      if [[ "$_rkt_terminal_theme" == light ]]; then
+        echo 333333
+      else
+        echo FFFFFF
+      fi
+      ;;
+  esac
+}
+
+_render_row() {
+  emulate -L zsh
+  local line_num="$1" art="$2" role="$3"
+  local col char r key
+  for ((col=0; col<18; col++)); do
+    key="$line_num:$col"
+    char="${art:$col:1}"
+    if [[ "$char" != " " ]]; then
+      r="${role:$col:1}"
+      case "$r" in
+        p) _rkt_set_color "$_rkt_tip" ;;
+        w) _rkt_set_color "$_rkt_win" ;;
+        b) _rkt_set_color "$_rkt_bdy" ;;
+        t) _rkt_set_color "$_rkt_top" ;;
+        s) _rkt_set_color "$_rkt_sds" ;;
+        f) _rkt_set_color "$_rkt_flm" ;;
+      esac
+      printf '%s' "$char"
+      _rkt_set_color normal
+    elif (( ${_rocket_stars[(Ie)$key]} )); then
+      _rkt_set_color "$(_rkt_star_color_for_mode)"
+      printf '*'
+      _rkt_set_color normal
+    else
+      printf ' '
+    fi
+  done
+}
+
+_render_flame() {
+  emulate -L zsh
+  local -a patterns=('\| ||' '|| |/' '\| |/' '|| ||' '*| |*' '~| ||' '|| |~' '\| /|')
+  local n_patterns=${#patterns}
+  local -a all_bytes=($(_rocket_palette_bytes))
+  local idx=$(( all_bytes[1] % n_patterns ))
+  local pattern="${patterns[$((idx + 1))]}"
+  printf '      '
+  _rkt_set_color "$_rkt_flm"
+  printf '%s' "$pattern"
+  _rkt_set_color normal
+}
+
+_rocket_pick_palette() {
+  emulate -L zsh
+  local fav_file="$HOME/.config/zsh/rocket_favorites.txt"
+  local -a colors=()
+  if (( $(_rkt_random 1 100) <= $_rkt_favorite_weight )) && [[ -f "$fav_file" ]]; then
+    local -a favs=("${(@f)"$(<$fav_file)"}")
+    if (( ${#favs} > 0 )); then
+      local rand_idx=$(_rkt_random 1 ${#favs})
+      colors=("${(s: :)favs[$rand_idx]}")
+    fi
+  fi
+  if (( ${#colors} != 6 )); then
+    colors=($(_gen_rocket_palette))
+  fi
+  _rocket_record_history "${colors[@]}"
+  printf '%s\n' "${colors[@]}"
+}
+
+_star_validate_hexes() {
+  emulate -L zsh
+  local -a hexes=()
+  local raw cleaned
+  for raw in "$@"; do
+    cleaned="${raw#\#}"
+    if [[ ! "$cleaned" =~ '^[0-9a-fA-F]{6}$' ]]; then
+      return 1
+    fi
+    hexes+=("$cleaned")
+  done
+  printf '%s\n' "${hexes[@]}"
+}
+
+_star_preview_palette() {
+  emulate -L zsh
+  local h1="$1" h2="$2" h3="$3" h4="$4" h5="$5" h6="$6"
+  local saved_tip="$_rkt_tip" saved_win="$_rkt_win" saved_bdy="$_rkt_bdy"
+  local saved_top="$_rkt_top" saved_sds="$_rkt_sds" saved_flm="$_rkt_flm"
+  local -a saved_stars=("${_rocket_stars[@]}")
+  typeset -g _rkt_tip="$h1" _rkt_win="$h2" _rkt_bdy="$h3"
+  typeset -g _rkt_top="$h4" _rkt_sds="$h5" _rkt_flm="$h6"
+  typeset -g -a _rocket_stars=()
+  _render_row 1 "        |         " "        b         "; echo ''
+  _render_row 2 "       / \\        " "       t t        "; echo ''
+  _render_row 3 "      / _ \\       " "      t t t       "; echo ''
+  _render_row 4 "     |.o '.|      " "     swp wws      "; echo ''
+  _render_row 5 "     |'._.'|      " "     swwwwws      "; echo ''
+  _render_row 6 "     |     |      " "     b     b      "; echo ''
+  _render_row 7 "   ,'|  |  |\`.    " "   ssb  b  bss    "; echo ''
+  _render_row 8 "  /  |  |  |  \\   " "  s  b  b  b  s   "; echo ''
+  _render_row 9 "  |,-'--|--'-.|   " "  bsssttbttsssb   "; echo ''
+  _render_flame; echo ''
+  typeset -g _rkt_tip="$saved_tip" _rkt_win="$saved_win" _rkt_bdy="$saved_bdy"
+  typeset -g _rkt_top="$saved_top" _rkt_sds="$saved_sds" _rkt_flm="$saved_flm"
+  typeset -g -a _rocket_stars=("${saved_stars[@]}")
+}
+
+star() {
+  emulate -L zsh
+  local fav_file="$HOME/.config/zsh/rocket_favorites.txt"
+  local hist_file="$HOME/.config/zsh/rocket_history.txt"
+  if (( $# == 0 )); then
+    if [[ ! -v _rkt_bdy ]]; then
+      echo "No active palette. Open a new tab first."
+      return 1
+    fi
+    local palette="$_rkt_tip $_rkt_win $_rkt_bdy $_rkt_top $_rkt_sds $_rkt_flm"
+    if [[ -f "$fav_file" ]] && grep -Fxq "$palette" "$fav_file"; then
+      echo "Already in favorites."
+      return 0
+    fi
+    mkdir -p "${fav_file:h}"
+    echo "$palette" >> "$fav_file"
+    _rkt_set_color "$_rkt_tip"; printf '★ '
+    _rkt_set_color "$_rkt_win"; printf '★ '
+    _rkt_set_color "$_rkt_bdy"; printf '★ '
+    _rkt_set_color "$_rkt_top"; printf '★ '
+    _rkt_set_color "$_rkt_sds"; printf '★ '
+    _rkt_set_color "$_rkt_flm"; printf '★'
+    _rkt_set_color normal
+    local -a all_lines=("${(@f)"$(<$fav_file)"}")
+    printf '  saved! (%s total)\n' "${#all_lines[@]}"
+    return 0
+  fi
+  case "${1}" in
+    list|ls)
+      if [[ ! -f "$fav_file" ]]; then
+        echo "No favorites yet. Use 'star' to save the current palette."
+        return 0
+      fi
+      local i=1
+      local -a lines=("${(@f)"$(<$fav_file)"}")
+      for line in "${lines[@]}"; do
+        _rocket_print_star_row "$i" "$line"
+        (( i++ ))
+      done
+      ;;
+    remove|rm)
+      if [[ ! -f "$fav_file" ]]; then
+        echo "No favorites to remove."
+        return 1
+      fi
+      local n="${2}"
+      if [[ ! "$n" =~ '^[0-9]+$' ]]; then
+        echo "Usage: star remove <number>"
+        return 1
+      fi
+      local -a lines=("${(@f)"$(<$fav_file)"}")
+      local total=${#lines}
+      if (( n < 1 || n > total )); then
+        echo "Out of range. You have $total favorites."
+        return 1
+      fi
+      lines[$n]=()
+      if (( ${#lines} == 0 )); then
+        rm "$fav_file"
+      else
+        printf '%s\n' "${lines[@]}" > "$fav_file"
+      fi
+      echo "Removed #$n."
+      ;;
+    history|hist)
+      if [[ ! -f "$hist_file" ]]; then
+        echo "No history yet."
+        return 0
+      fi
+      local -a lines=("${(@f)"$(<$hist_file)"}")
+      local total=${#lines}
+      if [[ "$2" == "clear" ]]; then
+        rm "$hist_file"
+        echo "History cleared."
+        return 0
+      fi
+      if (( $# >= 2 )); then
+        if [[ ! "$2" =~ '^[0-9]+$' ]]; then
+          echo "Usage: star history [N | clear]"
+          return 1
+        fi
+        local n="$2"
+        if (( n < 1 || n > total )); then
+          echo "Out of range. History has $total entries."
+          return 1
+        fi
+        local idx=$(( total - n + 1 ))
+        local palette="${lines[$idx]}"
+        if [[ -f "$fav_file" ]] && grep -Fxq "$palette" "$fav_file"; then
+          echo "Already in favorites."
+          return 0
+        fi
+        mkdir -p "${fav_file:h}"
+        echo "$palette" >> "$fav_file"
+        local -a cs=("${(s: :)palette}")
+        _rkt_set_color "$cs[1]"; printf '★ '
+        _rkt_set_color "$cs[2]"; printf '★ '
+        _rkt_set_color "$cs[3]"; printf '★ '
+        _rkt_set_color "$cs[4]"; printf '★ '
+        _rkt_set_color "$cs[5]"; printf '★ '
+        _rkt_set_color "$cs[6]"; printf '★'
+        _rkt_set_color normal
+        printf '  saved to favorites from history #%s!\n' "$n"
+        return 0
+      fi
+      local limit=20
+      local shown=0
+      local display_n idx palette
+      for ((i=total; i>=1; i--)); do
+        (( shown >= limit )) && break
+        display_n=$(( total - i + 1 ))
+        if (( display_n == 1 )); then
+          _rocket_print_star_row "$display_n" "${lines[$i]}" "(Current) 1. "
+        else
+          _rocket_print_star_row "$display_n" "${lines[$i]}" "$(printf '        %3d. ' "$display_n")"
+        fi
+        (( shown++ ))
+      done
+      if (( total > limit )); then
+        echo ''
+        echo "(showing last $limit of $total; full log at $hist_file)"
+      fi
+      ;;
+    show|preview)
+      if (( $# < 7 )); then
+        echo "Usage: star show <h1> <h2> <h3> <h4> <h5> <h6>"
+        echo "Renders a mini rocket preview with the given 6-color palette."
+        echo "Order: porthole, window, body, top, window-sides, flame."
+        return 1
+      fi
+      local -a hexes
+      if ! hexes=($(_star_validate_hexes "$2" "$3" "$4" "$5" "$6" "$7")); then
+        echo "Invalid hex code. Each must be 6 hex digits (e.g., ff0066 or #ff0066)."
+        return 1
+      fi
+      echo ''
+      _rkt_set_color "$hexes[1]"; printf '  ★ Porthole      '; _rkt_set_color normal; printf '  %s\n' "$hexes[1]"
+      _rkt_set_color "$hexes[2]"; printf '  ★ Window        '; _rkt_set_color normal; printf '  %s\n' "$hexes[2]"
+      _rkt_set_color "$hexes[3]"; printf '  ★ Body          '; _rkt_set_color normal; printf '  %s\n' "$hexes[3]"
+      _rkt_set_color "$hexes[4]"; printf '  ★ Top           '; _rkt_set_color normal; printf '  %s\n' "$hexes[4]"
+      _rkt_set_color "$hexes[5]"; printf '  ★ Window-sides  '; _rkt_set_color normal; printf '  %s\n' "$hexes[5]"
+      _rkt_set_color "$hexes[6]"; printf '  ★ Flame         '; _rkt_set_color normal; printf '  %s\n' "$hexes[6]"
+      echo ''
+      _star_preview_palette "$hexes[1]" "$hexes[2]" "$hexes[3]" "$hexes[4]" "$hexes[5]" "$hexes[6]"
+      echo ''
+      printf '  star add %s %s %s %s %s %s\n' "$hexes[1]" "$hexes[2]" "$hexes[3]" "$hexes[4]" "$hexes[5]" "$hexes[6]"
+      echo "  (^ run that to save to favorites)"
+      ;;
+    add)
+      if (( $# < 7 )); then
+        echo "Usage: star add <h1> <h2> <h3> <h4> <h5> <h6>"
+        echo "Order: porthole, window, body, top, window-sides, flame."
+        return 1
+      fi
+      local -a hexes
+      if ! hexes=($(_star_validate_hexes "$2" "$3" "$4" "$5" "$6" "$7")); then
+        echo "Invalid hex code. Each must be 6 hex digits (e.g., ff0066 or #ff0066)."
+        return 1
+      fi
+      local palette="$hexes[1] $hexes[2] $hexes[3] $hexes[4] $hexes[5] $hexes[6]"
+      if [[ -f "$fav_file" ]] && grep -Fxq "$palette" "$fav_file"; then
+        echo "Already in favorites."
+        return 0
+      fi
+      mkdir -p "${fav_file:h}"
+      echo "$palette" >> "$fav_file"
+      _rkt_set_color "$hexes[1]"; printf '★ '
+      _rkt_set_color "$hexes[2]"; printf '★ '
+      _rkt_set_color "$hexes[3]"; printf '★ '
+      _rkt_set_color "$hexes[4]"; printf '★ '
+      _rkt_set_color "$hexes[5]"; printf '★ '
+      _rkt_set_color "$hexes[6]"; printf '★'
+      _rkt_set_color normal
+      local -a all_lines=("${(@f)"$(<$fav_file)"}")
+      printf '  added to favorites! (%s total)\n' "${#all_lines[@]}"
+      ;;
+    explore|browse)
+      local n=5
+      if (( $# >= 2 )) && [[ "$2" =~ '^[0-9]+$' ]]; then
+        n="$2"
+      fi
+      echo ''
+      for ((i=1; i<=n; i++)); do
+        local -a p=($(_gen_rocket_palette))
+        printf "%3d. " "$i"
+        _rkt_set_color "$p[1]"; printf '★ '
+        _rkt_set_color "$p[2]"; printf '★ '
+        _rkt_set_color "$p[3]"; printf '★ '
+        _rkt_set_color "$p[4]"; printf '★ '
+        _rkt_set_color "$p[5]"; printf '★ '
+        _rkt_set_color "$p[6]"; printf '★'
+        _rkt_set_color normal
+        printf '  %s %s %s %s %s %s\n' "${p[@]}"
+      done
+      echo ''
+      echo "  star show <h1>..<h6>   preview a full rocket"
+      echo "  star add  <h1>..<h6>   save directly to favorites"
+      ;;
+    weight|w)
+      _rkt_load_settings
+      if (( $# == 1 )); then
+        echo "Favorite weight: $_rkt_favorite_weight%"
+        echo ''
+        echo "  Roughly $_rkt_favorite_weight out of every 100 new shells will roll"
+        echo "  a saved favorite. The rest generate fresh palettes."
+        echo ''
+        echo "Usage: star weight <0-100>"
+        echo "  0    = never use favorites (always fresh)"
+        echo "  100  = always use favorites"
+        return 0
+      fi
+      local n="$2"
+      if [[ ! "$n" =~ '^[0-9]+$' ]]; then
+        echo "Weight must be a number between 0 and 100."
+        return 1
+      fi
+      if (( n < 0 || n > 100 )); then
+        echo "Weight must be between 0 and 100."
+        return 1
+      fi
+      typeset -g _rkt_favorite_weight=$n
+      _rkt_save_settings
+      echo "Set favorite weight to $n%."
+      ;;
+    color|colors)
+      _rkt_load_settings
+      if (( $# == 1 )); then
+        if [[ ! -v _rkt_bdy ]]; then
+          echo "No active palette. Open a new tab first."
+          return 1
+        fi
+        echo ''
+        _rkt_set_color "$_rkt_tip"; printf '  ★ Porthole      '; _rkt_set_color normal; printf '  %s\n' "$_rkt_tip"
+        _rkt_set_color "$_rkt_win"; printf '  ★ Window        '; _rkt_set_color normal; printf '  %s\n' "$_rkt_win"
+        _rkt_set_color "$_rkt_bdy"; printf '  ★ Body          '; _rkt_set_color normal; printf '  %s\n' "$_rkt_bdy"
+        _rkt_set_color "$_rkt_top"; printf '  ★ Top           '; _rkt_set_color normal; printf '  %s\n' "$_rkt_top"
+        _rkt_set_color "$_rkt_sds"; printf '  ★ Window-sides  '; _rkt_set_color normal; printf '  %s\n' "$_rkt_sds"
+        _rkt_set_color "$_rkt_flm"; printf '  ★ Flame         '; _rkt_set_color normal; printf '  %s\n' "$_rkt_flm"
+        echo ''
+        _star_preview_palette "$_rkt_tip" "$_rkt_win" "$_rkt_bdy" "$_rkt_top" "$_rkt_sds" "$_rkt_flm"
+        return 0
+      fi
+      if [[ "$2" == "reset" ]]; then
+        typeset -g _rkt_random_star_mode=white
+        typeset -g _rkt_favorite_star_mode=gold
+        typeset -g _rkt_terminal_theme=dark
+        _rkt_save_settings
+        echo "Reset: theme=dark, random=white, favorite=gold"
+        return 0
+      fi
+      if (( $# < 3 )); then
+        echo "Usage: star color <theme|random|favorite> <value>"
+        return 1
+      fi
+      local ctx="$2" val="$3"
+      case "$ctx" in
+        theme)
+          if [[ "$val" != dark && "$val" != light ]]; then
+            echo "Theme must be 'dark' or 'light'."
+            return 1
+          fi
+          typeset -g _rkt_terminal_theme="$val"
+          _rkt_save_settings
+          echo "Set terminal theme to $val."
+          ;;
+        random)
+          if [[ "$val" != white && "$val" != gold && "$val" != neon ]]; then
+            echo "Random mode must be 'white' or 'neon'."
+            return 1
+          fi
+          typeset -g _rkt_random_star_mode="$val"
+          _rkt_save_settings
+          if [[ "$val" == gold ]]; then
+            echo "Set random-palette stars to $val. :)"
+          else
+            echo "Set random-palette stars to $val."
+          fi
+          ;;
+        favorite|favorites|fav)
+          if [[ "$val" != white && "$val" != gold && "$val" != neon ]]; then
+            echo "Favorite mode must be 'gold' or 'neon'."
+            return 1
+          fi
+          typeset -g _rkt_favorite_star_mode="$val"
+          _rkt_save_settings
+          if [[ "$val" == white ]]; then
+            echo "Set favorite-palette stars to $val. :)"
+          else
+            echo "Set favorite-palette stars to $val."
+          fi
+          ;;
+        *)
+          echo "Context must be 'theme', 'random', or 'favorite'."
+          return 1
+          ;;
+      esac
+      ;;
+    help|-h|--help)
+      _rkt_load_settings
+      echo "star                          save current palette to favorites"
+      echo "star list                     show all favorites"
+      echo "star remove N                 delete favorite #N"
+      echo ''
+      echo "star history                  show last 20 palettes (most recent first)"
+      echo "star history N                save palette #N from history to favorites"
+      echo "star history clear            wipe history"
+      echo ''
+      echo "star show H1..H6              preview a custom palette (mini rocket)"
+      echo "star add  H1..H6              add a custom palette directly to favorites"
+      echo "star explore [N]              browse N random palettes (default 5)"
+      echo ''
+      echo "star color                    show current palette preview"
+      printf 'star color theme <d|l>        terminal theme: '
+      _rkt_print_option "$_rkt_terminal_theme" dark light
+      echo ''
+      printf 'star color random <mode>      random-palette stars: '
+      _rkt_print_option "$_rkt_random_star_mode" white neon
+      echo ''
+      printf 'star color favorite <mode>    favorite-palette stars: '
+      _rkt_print_option "$_rkt_favorite_star_mode" gold neon
+      echo ''
+      printf 'star weight <0-100>           ratio of favorites to random rockets. Currently: '
+      _rkt_set_color --bold --italics
+      printf '%s%%' "$_rkt_favorite_weight"
+      _rkt_set_color normal
+      echo ''
+      echo "star color reset              restore defaults"
+      echo ''
+      echo "  Favorites: $fav_file"
+      echo "  History:   $hist_file (last 100 launches)"
+      echo "  Settings:  $HOME/.config/zsh/rocket_settings.zsh"
+      ;;
+    *)
+      echo "Unknown subcommand: ${1}"
+      echo "Try: star, star list, star show, star add, star explore, star color, star weight, star help"
+      return 1
+      ;;
+  esac
+}
+
+_rkt_hw_info() {
+  emulate -L zsh
+  local cache="$HOME/.config/zsh/rocket_hw_cache.zsh"
+  if [[ -f "$cache" ]] && [[ -n $(find "$cache" -mmin -1440 2>/dev/null) ]]; then
+    source "$cache"
+    return
+  fi
+  mkdir -p "${cache:h}"
+  local os_type=$(uname -s)
+  local os_str=$(uname -sm)
+  local cpu_str="" mem_str=""
+  if [[ "$os_type" == "Darwin" ]]; then
+    local chip_name=$(sysctl -n machdep.cpu.brand_string)
+    local cores_n=$(system_profiler SPHardwareDataType 2>/dev/null | grep "Total Number of Cores" | cut -d ":" -f2 | sed 's/^[[:space:]]*//')
+    cpu_str="$chip_name, $cores_n"
+    mem_str=$(system_profiler SPHardwareDataType 2>/dev/null | grep "Memory:" | cut -d ":" -f 2 | tr -d " ")
+  elif [[ "$os_type" == "Linux" ]]; then
+    local procs_n=$(grep -c "^processor" /proc/cpuinfo)
+    local cores_n=$(grep "cpu cores" /proc/cpuinfo | head -1 | cut -d ":" -f2 | tr -d " ")
+    local cpu_type=$(grep "model name" /proc/cpuinfo | head -1 | cut -d ":" -f2)
+    cpu_str="$procs_n processors, $cores_n cores, $cpu_type"
+    mem_str=$(free -h | grep "Mem" | cut -d " " -f 11)
+  fi
+  printf 'typeset -g _rkt_os=%s\n'  "${(q)os_str}"  > "$cache"
+  printf 'typeset -g _rkt_cpu=%s\n' "${(q)cpu_str}" >> "$cache"
+  printf 'typeset -g _rkt_mem=%s\n' "${(q)mem_str}" >> "$cache"
+  source "$cache"
+}
+
+_rkt_net_info() {
+  emulate -L zsh
+  local cache="$HOME/.config/zsh/rocket_net_cache.zsh"
+  if [[ -f "$cache" ]] && [[ -n $(find "$cache" -mmin -5 2>/dev/null) ]]; then
+    source "$cache"
+    return
+  fi
+  mkdir -p "${cache:h}"
+  local os_type=$(uname -s)
+  local ip="" gw=""
+  if [[ "$os_type" == "Darwin" ]]; then
+    ip=$(ifconfig | grep -v "127.0.0.1" | grep "inet " | head -1 | cut -d " " -f2)
+    gw=$(netstat -nr | grep -E "default.*UGSc" | cut -d " " -f13)
+  elif [[ "$os_type" == "Linux" ]]; then
+    ip=$(ip address show | grep -E "inet .* brd .* dynamic" | cut -d " " -f6)
+    gw=$(ip route | grep default | cut -d " " -f3)
+  fi
+  printf 'typeset -g _rkt_ip=%s\n' "${(q)ip}" > "$cache"
+  printf 'typeset -g _rkt_gw=%s\n' "${(q)gw}" >> "$cache"
+  source "$cache"
+}
+
+_rkt_greeting() {
+  emulate -L zsh
+  _rkt_hw_info
+  _rkt_net_info
+  _rkt_load_settings
+  local -a colors=($(_rocket_pick_palette))
+  typeset -g _rkt_tip="${colors[1]}"
+  typeset -g _rkt_win="${colors[2]}"
+  typeset -g _rkt_bdy="${colors[3]}"
+  typeset -g _rkt_top="${colors[4]}"
+  typeset -g _rkt_sds="${colors[5]}"
+  typeset -g _rkt_flm="${colors[6]}"
+  typeset -g -a _rocket_stars=("${(@f)$(_compute_star_positions)}")
+  if _palette_is_favorite; then
+    typeset -g _rkt_star_mode="$_rkt_favorite_star_mode"
+  else
+    typeset -g _rkt_star_mode="$_rkt_random_star_mode"
+  fi
+  echo ''
+  _render_row 0 "                  " "                  "
+  echo ''
+  _render_row 1 "        |         " "        b         "
+  printf ' '; welcome_message; printf '\n'
+  _render_row 2 "       / \\        " "       t t        "
+  echo ''
+  _render_row 3 "      / _ \\       " "      t t t       "
+  printf ' '; show_date_info; printf '\n'
+  _render_row 4 "     |.o '.|      " "     swp wws      "
+  echo ''
+  _render_row 5 "     |'._.'|      " "     swwwwws      "
+  echo " Space Vessel:"
+  _render_row 6 "     |     |      " "     b     b      "
+  printf ' '; show_os_info; printf '\n'
+  _render_row 7 "   ,'|  |  |\`.    " "   ssb  b  bss    "
+  printf ' '; show_cpu_info; printf '\n'
+  _render_row 8 "  /  |  |  |  \\   " "  s  b  b  b  s   "
+  printf ' '; show_mem_info; printf '\n'
+  _render_row 9 "  |,-'--|--'-.|   " "  bsssttbttsssb   "
+  printf ' '; show_net_info; printf '\n'
+  _render_flame
+  echo ''
+  _render_row 11 "                  " "                  "
+  echo ''
+  echo ''
+  _rkt_set_color grey
+  echo "Have a Nice Trip!"
+  _rkt_set_color normal
+}
+
+welcome_message() {
+  emulate -L zsh
+  printf 'Welcome Aboard, '
+  _rkt_set_color "$_rkt_bdy"
+  printf 'Captain '
+  _rkt_set_color FFF
+  printf '%s!' "$(whoami)"
+  _rkt_set_color normal
+}
+
+show_date_info() {
+  emulate -L zsh
+  local up_time=$(uptime | awk -F '(up |,)' '{print $2}' | sed 's/^ *//g')
+  printf 'Today is '
+  _rkt_set_color cyan
+  printf '%s' "$(date +%Y.%m.%d)"
+  _rkt_set_color normal
+  printf ', we are up and running for '
+  _rkt_set_color cyan
+  printf '%s' "$up_time"
+  _rkt_set_color normal
+  printf '.'
+}
+
+show_os_info() {
+  emulate -L zsh
+  _rkt_set_color yellow
+  printf '\tOS: '
+  _rkt_set_color 0F0
+  printf '%s' "$_rkt_os"
+  _rkt_set_color normal
+}
+
+show_cpu_info() {
+  emulate -L zsh
+  _rkt_set_color yellow
+  printf '\tCPU: '
+  _rkt_set_color 0F0
+  printf '%s' "$_rkt_cpu"
+  _rkt_set_color normal
+}
+
+show_mem_info() {
+  emulate -L zsh
+  _rkt_set_color yellow
+  printf '\tMemory: '
+  _rkt_set_color 0F0
+  printf '%s' "$_rkt_mem"
+  _rkt_set_color normal
+}
+
+show_net_info() {
+  emulate -L zsh
+  _rkt_set_color yellow
+  printf '\tNet: '
+  _rkt_set_color 0F0
+  printf 'IP Address: %s, Default Gateway: %s' "$_rkt_ip" "$_rkt_gw"
+  _rkt_set_color normal
+}
+
+if [[ -o interactive ]] && [[ -t 1 ]]; then
+  _rkt_greeting
+fi
