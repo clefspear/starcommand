@@ -48,7 +48,7 @@ Requires fish ≥ 3.0 or zsh ≥ 5.0.
 **fish:**
 ```fish
 curl -o ~/.config/fish/functions/fish_greeting.fish \
-  https://raw.githubusercontent.com/clefspear/spaceport/main/fish_greeting.fish
+  https://raw.githubusercontent.com/clefspear/spaceport/cantaloupe/fish_greeting.fish
 ```
 
 Open a new tab. Done.
@@ -56,7 +56,7 @@ Open a new tab. Done.
 **zsh:**
 ```zsh
 curl -o ~/.config/zsh/zsh_greeting.zsh \
-  https://raw.githubusercontent.com/clefspear/spaceport/main/zsh_greeting.zsh
+  https://raw.githubusercontent.com/clefspear/spaceport/cantaloupe/zsh_greeting.zsh
 echo "source ~/.config/zsh/zsh_greeting.zsh" >> ~/.zshrc
 source ~/.config/zsh/zsh_greeting.zsh
 ```
