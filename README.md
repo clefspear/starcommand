@@ -23,15 +23,19 @@ In practice, two identical rockets appearing twice in a lifetime is statisticall
 
 But the kicker: it's all reproducible. Save a palette to favorites and you've saved the *entire visual identity*. Same six hex codes always produce the same 18 stars in the same 18 positions with the same flame. The palette is the spec.
 
+![star-history](docs/star-history.png)
+
+*Every row is a rocket that actually rolled up in a normal week of opening tabs. Each palette deterministic from its six hex codes.*
+
 ---
 
 ## See it
 
 **In your terminal:**
-![launches](docs/launches.gif)
+<!-- ![launches](docs/launches.gif) -->
 
 **In the VSCode integrated terminal:**
-![vscode](docs/vscode.png)
+<!-- ![vscode](docs/vscode.png) -->
 
 Works anywhere fish or zsh runs — iTerm2, Terminal.app, Alacritty, Kitty, Warp, VSCode, JetBrains terminals, tmux panes, SSH sessions, all of it.
 
@@ -39,7 +43,15 @@ Works anywhere fish or zsh runs — iTerm2, Terminal.app, Alacritty, Kitty, Warp
 
 ## Install
 
-Requires zsh ≥ 5.0 or fish ≥ 3.0.
+Requires fish ≥ 3.0 or zsh ≥ 5.0.
+
+**fish:**
+```fish
+curl -o ~/.config/fish/functions/fish_greeting.fish \
+  https://raw.githubusercontent.com/clefspear/spaceport/main/fish_greeting.fish
+```
+
+Open a new tab. Done.
 
 **zsh:**
 ```zsh
@@ -47,14 +59,6 @@ curl -o ~/.config/zsh/zsh_greeting.zsh \
   https://raw.githubusercontent.com/clefspear/spaceport/main/zsh_greeting.zsh
 echo "source ~/.config/zsh/zsh_greeting.zsh" >> ~/.zshrc
 source ~/.config/zsh/zsh_greeting.zsh
-```
-
-Open a new tab. Done.
-
-**fish:**
-```fish
-curl -o ~/.config/fish/functions/fish_greeting.fish \
-  https://raw.githubusercontent.com/clefspear/spaceport/main/fish_greeting.fish
 ```
 
 Open a new tab. Done.
@@ -69,9 +73,7 @@ star color theme light
 
 ## The `star` command
 
-```
-$ star help
-```
+![star-help](docs/star-help.png)
 
 ### Save and explore
 
@@ -86,7 +88,11 @@ $ star help
 | `star add H1..H6` | Add a custom palette to favorites |
 | `star explore [N]` | Browse `N` random palettes (default 5) |
 
-![star-list](docs/star-list.png)
+![star-show](docs/star-show.png)
+
+*`star show` previews any 6 hex codes as a full rocket before saving — useful for vibe-checking a palette you found.*
+
+<!-- ![star-list](docs/star-list.png) -->
 
 ### Settings
 
@@ -107,11 +113,11 @@ $ star help
 
 **Gold (default for favorites)** — when a saved favorite rolls up, the star field renders in bright Mario-star yellow. Instant "oh, that one's mine" recognition.
 
-![gold](docs/gold.png)
+<!-- ![gold](docs/gold.png) -->
 
 **Neon** — every star independently rolls from a 28-color palette spanning the full hue wheel at 15° increments. Maximum chromatic chaos.
 
-![neon](docs/neon.png)
+<!-- ![neon](docs/neon.png) -->
 
 Use neon on favorites to make them pop, or on random rolls to make every shell feel like a party.
 
