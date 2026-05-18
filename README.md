@@ -102,11 +102,7 @@ Open a new tab. Done. On macOS, the installer writes to both `~/.bashrc` and `~/
 **zsh:**
 
 ```zsh
-mkdir -p ~/.config/zsh
-curl -fSL -o ~/.config/zsh/zsh_greeting.zsh \
-  https://raw.githubusercontent.com/clefspear/starcommand/main/zsh/zsh_greeting.zsh
-echo "source ~/.config/zsh/zsh_greeting.zsh" >> ~/.zshrc
-source ~/.config/zsh/zsh_greeting.zsh
+curl -fsSL https://raw.githubusercontent.com/clefspear/starcommand/main/zsh/zsh_greeting.zsh | zsh
 ```
 
 Open a new tab. Done.
@@ -189,14 +185,19 @@ Verified by `tests/parity_test.sh` and `tests/prng_reference.txt` — every shel
 ├── rocket_history.txt              # last 100 launches*
 └── rocket_settings.fish            # theme, modes, weight
 
-# Windows (PowerShell)
-%USERPROFILE%\Documents\WindowsPowerShell\Scripts\starcommand\
+# PowerShell (Windows / macOS / Linux)
+<profile_dir>/Scripts/starcommand/
 └── starcommand.ps1                 # the theme (PowerShell)
 
-%USERPROFILE%\.config\powershell\
+<profile_dir>/
 ├── rocket_favorites.txt            # saved palettes (plain text)*
 ├── rocket_history.txt              # last 100 launches*
 └── rocket_settings.ps1             # theme, modes, weight
+
+# <profile_dir> is the directory of $PROFILE.CurrentUserAllHosts:
+#   Windows PS 7+ → %USERPROFILE%\Documents\PowerShell
+#   Windows PS 5.1 → %USERPROFILE%\Documents\WindowsPowerShell
+#   macOS / Linux → ~/.config/powershell
 
 *Shareable between shells — same format. Same palette in bash_favorites
  and powershell_favorites produces the same rocket on launch.
