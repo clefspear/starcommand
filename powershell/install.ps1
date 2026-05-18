@@ -17,7 +17,13 @@ $starcommandPath = Join-Path $installDir 'starcommand.ps1'
 # 2. Download starcommand.ps1 to that location
 Invoke-WebRequest -UseBasicParsing -Uri "$rawBase/starcommand.ps1" -OutFile $starcommandPath
 
-# 3. Make sure the profile exists, then add a dot-source line if it isn't there
+# 3. Ensure execution policy allows running scripts
+$currentPolicy = Get-ExecutionPolicy -Scope CurrentUser
+if ($currentPolicy -in 'Restricted', 'Undefined') {
+    Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+}
+
+# 4. Make sure the profile exists, then add a dot-source line if it isn't there
 $profilePath = $PROFILE.CurrentUserAllHosts
 $profileDir  = Split-Path -Parent $profilePath
 if (-not (Test-Path $profileDir))  { New-Item -ItemType Directory -Path $profileDir -Force | Out-Null }
@@ -29,8 +35,8 @@ if ($existing -notmatch [regex]::Escape($dotSourceLine)) {
     Add-Content -Path $profilePath -Value "`r`n$dotSourceLine"
 }
 
-# 4. Load it into the current session too, so the user doesn't have to restart
-. $starcommandPath
+# 5. Load it into the current session too, so the user doesn't have to restart
+Invoke-Expression (Get-Content -Raw $starcommandPath)
 
 Write-Host "starcommand installed to $starcommandPath" -ForegroundColor Green
 Write-Host "Run 'Invoke-Starcommand' to display your rocket greeting." -ForegroundColor Green
