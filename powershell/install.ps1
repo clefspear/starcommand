@@ -36,7 +36,8 @@ if ($existing -notmatch [regex]::Escape($dotSourceLine)) {
 }
 
 # 5. Load it into the current session too, so the user doesn't have to restart
-Invoke-Expression (Get-Content -Raw $starcommandPath)
+. $starcommandPath
+Invoke-Starcommand
 
 Write-Host "starcommand installed to $starcommandPath" -ForegroundColor Green
 Write-Host "Run 'Invoke-Starcommand' to display your rocket greeting." -ForegroundColor Green

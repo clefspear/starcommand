@@ -965,9 +965,32 @@ function Write-WelcomeMessage {
     Set-RocketColor normal
 }
 
+function Get-PortableUptime {
+    try {
+        # PowerShell 7+ has Get-Uptime built in (cross-platform)
+        if (Get-Command Get-Uptime -ErrorAction SilentlyContinue) {
+            $u = Get-Uptime
+            return ('{0}d {1}h {2}m' -f $u.Days, $u.Hours, $u.Minutes)
+        }
+        # Windows PowerShell 5.1 fallback via CIM
+        if ([System.Environment]::OSVersion.Platform -eq [System.PlatformID]::Win32NT) {
+            $os = Get-CimInstance Win32_OperatingSystem -ErrorAction Stop
+            $u = (Get-Date) - $os.LastBootUpTime
+            return ('{0}d {1}h {2}m' -f $u.Days, $u.Hours, $u.Minutes)
+        }
+        # Linux/macOS fallback to the uptime binary
+        $raw = & uptime 2>$null
+        if ($LASTEXITCODE -eq 0 -and $raw) {
+            $piece = $raw | Select-String -Pattern '(up |,)' |
+                     ForEach-Object { ($_ -split 'up ')[-1] -split ',' | Select-Object -First 1 }
+            if ($piece) { return $piece.ToString().Trim() }
+        }
+    } catch {}
+    return 'unknown'
+}
+
 function Write-DateInfo {
-    $up_time = & uptime | Select-String -Pattern '(up |,)' | ForEach-Object { ($_ -split 'up ')[-1] -split ',' | Select-Object -First 1 }
-    $up_time = $up_time.Trim()
+    $up_time = Get-PortableUptime
     [Console]::Write('Today is ')
     Set-RocketColor cyan
     [Console]::Write((Get-Date -Format 'yyyy.MM.dd'))
