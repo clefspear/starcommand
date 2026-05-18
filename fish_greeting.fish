@@ -18,7 +18,7 @@ function _rkt_djb2 --argument-names str
     for i in (seq $len)
         set -l ch (string sub --start $i --length 1 -- "$str")
         set -l c (printf "%d" \'$ch)
-        set -l h (math "($h * 33 + $c) % 4294967296")
+        set h (math "($h * 33 + $c) % 4294967296")
     end
     if test $h -eq 0
         set h 1
@@ -27,9 +27,9 @@ function _rkt_djb2 --argument-names str
 end
 
 function _rkt_prng_seed
-    set -l hostname (hostname -s 2>/dev/null; or echo "localhost")
+    set -l hname (hostname -s 2>/dev/null; or echo "localhost")
     set -l date_str (date +%Y.%m.%d)
-    set -g _RKT_PRNG_STATE (_rkt_djb2 "$hostname.$date_str")
+    set -g _RKT_PRNG_STATE (_rkt_djb2 "$hname.$date_str")
 end
 
 function _rkt_prng_range --argument-names min max
