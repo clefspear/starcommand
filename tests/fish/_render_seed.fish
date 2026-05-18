@@ -3,7 +3,7 @@
 # Usage: fish _render_seed.fish <seed>
 
 set DIR (dirname (status filename))/../..
-source $DIR/fish_greeting.fish
+source $DIR/fish/fish_greeting.fish
 
 set -g _RKT_PRNG_STATE $argv[1]
 set -g _rkt_star_mode white

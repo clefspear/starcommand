@@ -108,9 +108,9 @@ clean_star_state 2>/dev/null || true
 
 SEQUENCE='star color reset; star add 3A7BDF E85D3A 2ECC71 F1C40F 9B59B6 1ABC9C; star list; star color theme light; star color random neon; star; star list; star color reset'
 
-fish  -c "source $DIR/fish_greeting.fish;    $SEQUENCE" 2>/dev/null > "$SEQDIR/fish.txt"
+fish  -c "source $DIR/fish/fish_greeting.fish;    $SEQUENCE" 2>/dev/null > "$SEQDIR/fish.txt"
 clean_star_state 2>/dev/null || true
-zsh   -c "source $DIR/zsh_greeting.zsh;     $SEQUENCE" 2>/dev/null > "$SEQDIR/zsh.txt"
+zsh   -c "source $DIR/zsh/zsh_greeting.zsh;     $SEQUENCE" 2>/dev/null > "$SEQDIR/zsh.txt"
 clean_star_state 2>/dev/null || true
 bash  -c "source $DIR/bash/starcommand.sh;   $SEQUENCE" 2>/dev/null > "$SEQDIR/bash.txt"
 clean_star_state 2>/dev/null || true

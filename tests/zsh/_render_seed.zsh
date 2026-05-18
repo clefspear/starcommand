@@ -3,7 +3,7 @@
 # Usage: zsh _render_seed.zsh <seed>
 
 DIR="$(cd "$(dirname "$0")/../.." && pwd)"
-source "$DIR/zsh_greeting.zsh"
+source "$DIR/zsh/zsh_greeting.zsh"
 
 _RKT_PRNG_STATE=$1
 _RKT_STAR_MODE=white
