@@ -1,3 +1,44 @@
+# ── Portable xorshift32 PRNG ───────────────────────────────────────────────────
+
+set -g _RKT_PRNG_STATE 0
+
+function _rkt_xorshift32 --argument-names s
+    perl -e '
+        my $s = int($ARGV[0]);
+        $s = ($s ^ ($s << 13)) & 0xFFFFFFFF;
+        $s = ($s ^ ($s >> 17)) & 0xFFFFFFFF;
+        $s = ($s ^ ($s << 5)) & 0xFFFFFFFF;
+        print $s
+    ' $s
+end
+
+function _rkt_djb2 --argument-names str
+    set -l h 5381
+    set -l len (string length -- "$str")
+    for i in (seq $len)
+        set -l ch (string sub --start $i --length 1 -- "$str")
+        set -l c (printf "%d" \'$ch)
+        set h (math "($h * 33 + $c) % 4294967296")
+    end
+    if test $h -eq 0
+        set h 1
+    end
+    echo $h
+end
+
+function _rkt_prng_seed
+    set -l hname (hostname -s 2>/dev/null; or echo "localhost")
+    set -l hname (string lower -- "$hname")
+    set -l date_str (date +%Y.%m.%d)
+    set -g _RKT_PRNG_STATE (_rkt_djb2 "$hname.$date_str")
+end
+
+function _rkt_prng_range --argument-names min max
+    set -g _RKT_PRNG_STATE (_rkt_xorshift32 $_RKT_PRNG_STATE)
+    set -l range (math "$max - $min + 1")
+    math "$min + ($_RKT_PRNG_STATE % $range)"
+end
+
 function _hsl_to_hex --argument-names h s l --description "HSL (0-360, 0-100, 0-100) to 6-digit hex"
     set --local sat (math "$s / 100")
     set --local light (math "$l / 100")
@@ -82,10 +123,10 @@ end
 
 
 function _gen_rocket_palette --description "6-color palette with distinct hues per role"
-    set --local h_base (random 0 359)
-    set --local scheme (random 0 4)
-    set --local sat (random 65 90)
-    set --local light (random 55 72)
+    set --local h_base (_rkt_prng_range 0 359)
+    set --local scheme (_rkt_prng_range 0 4)
+    set --local sat (_rkt_prng_range 65 90)
+    set --local light (_rkt_prng_range 55 72)
 
 
     # Six hues spread around the wheel so no two roles end up near-identical.
@@ -130,7 +171,7 @@ function _rkt_neon_color --description "Pick a neon hex from a dark-bg-optimized
         CCFF00 99FF00 66FF00 33FF00 00FF33 00FF66 00FF99 \
         00FFCC 00FFFF 00CCFF 0099FF 0066FF 0033FF 3300FF \
         6600FF 9900FF CC00FF FF00FF FF00CC FF0099 FF0066
-    echo $neons[(random 1 (count $neons))]
+    echo $neons[(_rkt_prng_range 1 (count $neons))]
 end
 
 
@@ -140,7 +181,7 @@ function _rkt_neon_color_light --description "Pick a neon hex from a light-bg-op
         88AA00 668800 448800 228822 228B22 008844 008866 \
         008B7F 008B8B 0077AA 1E6FB8 0055CC 0033AA 2200AA \
         4B0082 6622AA 7B1FA2 A020A0 AA0088 AD1457 AA0044
-    echo $neons[(random 1 (count $neons))]
+    echo $neons[(_rkt_prng_range 1 (count $neons))]
 end
 
 
@@ -286,10 +327,10 @@ function _rocket_pick_palette --description "Configurable chance of favorite, re
     set --local fav_file ~/.config/fish/rocket_favorites.txt
     set --local colors
 
-    if test (random 1 100) -le $_rkt_favorite_weight; and test -f $fav_file
+    if test (_rkt_prng_range 1 100) -le $_rkt_favorite_weight; and test -f $fav_file
         set --local favs (cat $fav_file)
         if test (count $favs) -gt 0
-            set colors (string split " " $favs[(random 1 (count $favs))])
+            set colors (string split " " $favs[(_rkt_prng_range 1 (count $favs))])
         end
     end
 
@@ -785,6 +826,7 @@ end
 
 function fish_greeting -d "Greeting message on shell session start up"
 
+    _rkt_prng_seed
     _rkt_hw_info
     _rkt_net_info
     _rkt_load_settings
