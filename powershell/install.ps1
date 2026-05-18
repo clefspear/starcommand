@@ -23,21 +23,39 @@ if ($currentPolicy -in 'Restricted', 'Undefined') {
     Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
 }
 
-# 4. Make sure the profile exists, then add a dot-source line if it isn't there
+# 4. Make sure the profile exists, then write a fenced starcommand block.
+#    Fence markers make the block idempotent: re-running this installer
+#    replaces the old block instead of appending duplicates.
 $profilePath = $PROFILE.CurrentUserAllHosts
 $profileDir  = Split-Path -Parent $profilePath
 if (-not (Test-Path $profileDir))  { New-Item -ItemType Directory -Path $profileDir -Force | Out-Null }
 if (-not (Test-Path $profilePath)) { New-Item -ItemType File      -Path $profilePath -Force | Out-Null }
 
-$dotSourceLine = ". `"$starcommandPath`""
+$beginMarker = '# >>> starcommand >>>'
+$endMarker   = '# <<< starcommand <<<'
+$profileBlock = @"
+$beginMarker
+. "$starcommandPath"
+Invoke-Starcommand
+$endMarker
+"@
+
 $existing = Get-Content $profilePath -Raw -ErrorAction SilentlyContinue
-if ($existing -notmatch [regex]::Escape($dotSourceLine)) {
-    Add-Content -Path $profilePath -Value "`r`n$dotSourceLine"
-}
+if (-not $existing) { $existing = '' }
+
+# Strip any prior starcommand block (fenced or legacy bare dot-source)
+$fencedPattern = "(?s)\r?\n?$([regex]::Escape($beginMarker)).*?$([regex]::Escape($endMarker))\r?\n?"
+$cleaned = [regex]::Replace($existing, $fencedPattern, '')
+$legacyLine = ". `"$starcommandPath`""
+$cleaned = ($cleaned -split "`r?`n" | Where-Object { $_.Trim() -ne $legacyLine.Trim() }) -join "`r`n"
+$cleaned = $cleaned.TrimEnd()
+
+$separator = if ($cleaned) { "`r`n`r`n" } else { '' }
+Set-Content -Path $profilePath -Value ($cleaned + $separator + $profileBlock + "`r`n")
 
 # 5. Load it into the current session too, so the user doesn't have to restart
 . $starcommandPath
 Invoke-Starcommand
 
-Write-Host "starcommand installed to $starcommandPath" -ForegroundColor Green
-Write-Host "Run 'Invoke-Starcommand' to display your rocket greeting." -ForegroundColor Green
+Write-Host ""
+Write-Host "Type 'star help' for commands." -ForegroundColor Green
