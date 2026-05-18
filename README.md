@@ -29,6 +29,50 @@ But the kicker: it's all reproducible. Save a palette to favorites and you've sa
 
 -----
 
+## The `star` command
+
+![star-help](docs/star-help.png)
+
+### Save and explore
+
+|                  |                                           |
+|------------------|-------------------------------------------|
+|`star`            |Save the current palette to favorites      |
+|`star list`       |Show all favorites                         |
+|`star remove N`   |Delete favorite `#N`                       |
+|`star history`    |Last 20 palettes (most recent first)       |
+|`star history N`  |Save palette `#N` from history to favorites|
+|`star show H1..H6`|Preview a custom palette as a mini rocket  |
+|`star add H1..H6` |Add a custom palette to favorites          |
+|`star explore [N]`|Browse `N` random palettes (default 5)     |
+
+![star-show](docs/star-show.png)
+
+*`star show` previews any 6 hex codes as a full rocket before saving — useful for vibe-checking a palette you found.*
+
+<!-- ![star-list](docs/star-list.png) -->
+
+### Settings
+
+|                                 |                                                 |
+|---------------------------------|-------------------------------------------------|
+|`star color`                     |Show current palette + rocket preview            |
+|`star color theme <dark\|light>`  |Match your terminal background                   |
+|`star color random <white\|neon>` |Star color on random rockets                     |
+|`star color favorite <gold\|neon>`|Star color on favorite rockets                   |
+|`star color reset`               |Restore defaults                                 |
+|`star weight <0-100>`            |Ratio of favorites to random rockets (default 20)|
+
+`star help` displays the current value of every setting inline, in **bold italics**, so you can see the active state at a glance.
+
+Light-mode terminal? Run this once so stars stay readable:
+
+```sh
+star color theme light
+```
+
+-----
+
 ## One rocket, four shells
 
 Open bash in one tab and PowerShell in another on the same machine on the same day — you'll get the *same rocket*. Byte-identical.
@@ -97,50 +141,6 @@ curl -o ~/.config/fish/functions/fish_greeting.fish \
 ```
 
 Open a new tab. Done.
-
-Light-mode terminal? Run this once so stars stay readable:
-
-```sh
-star color theme light
-```
-
------
-
-## The `star` command
-
-![star-help](docs/star-help.png)
-
-### Save and explore
-
-|                  |                                           |
-|------------------|-------------------------------------------|
-|`star`            |Save the current palette to favorites      |
-|`star list`       |Show all favorites                         |
-|`star remove N`   |Delete favorite `#N`                       |
-|`star history`    |Last 20 palettes (most recent first)       |
-|`star history N`  |Save palette `#N` from history to favorites|
-|`star show H1..H6`|Preview a custom palette as a mini rocket  |
-|`star add H1..H6` |Add a custom palette to favorites          |
-|`star explore [N]`|Browse `N` random palettes (default 5)     |
-
-![star-show](docs/star-show.png)
-
-*`star show` previews any 6 hex codes as a full rocket before saving — useful for vibe-checking a palette you found.*
-
-<!-- ![star-list](docs/star-list.png) -->
-
-### Settings
-
-|                                 |                                                 |
-|---------------------------------|-------------------------------------------------|
-|`star color`                     |Show current palette + rocket preview            |
-|`star color theme <dark\|light>`  |Match your terminal background                   |
-|`star color random <white\|neon>` |Star color on random rockets                     |
-|`star color favorite <gold\|neon>`|Star color on favorite rockets                   |
-|`star color reset`               |Restore defaults                                 |
-|`star weight <0-100>`            |Ratio of favorites to random rockets (default 20)|
-
-`star help` displays the current value of every setting inline, in **bold italics**, so you can see the active state at a glance.
 
 -----
 
