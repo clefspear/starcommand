@@ -12,14 +12,14 @@ starcommand launches a different rocket every time you open a shell — a bash, 
 
 A lot.
 
-- **~2 × 10⁴³ unique rockets possible** — every palette deterministically reproducible
+- **~2 × 10⁴³ unique rockets possible** — every palette deterministically reproducible from its six hex codes
 - **148 candidate star cells** around the rocket
 - **18 stars per rocket**, deterministically placed from the palette's bytes
 - **8 flame patterns**, mapped from the first palette byte
 - **28-color neon mode** that re-rolls every star color independently
 - **6 color roles** (porthole, window, body, top, window-sides, flame), each drawn from a full 24-bit color space
 
-In practice, two identical rockets appearing twice in a lifetime is statistically impossible. Every shell you open is — visually — the first time anyone has ever seen that exact rocket.
+Every shell you open rolls a fresh palette from a high-entropy seed, so two identical rockets appearing twice in a lifetime is statistically impossible. Every tab is — visually — the first time anyone has ever seen that exact rocket.
 
 But the kicker: it's all reproducible. Save a palette to favorites and you've saved the *entire visual identity*. Same six hex codes always produce the same 18 stars in the same 18 positions with the same flame. The palette is the spec.
 
@@ -50,6 +50,8 @@ But the kicker: it's all reproducible. Save a palette to favorites and you've sa
 
 *`star show` previews any 6 hex codes as a full rocket before saving — useful for vibe-checking a palette you found.*
 
+*With per-launch randomization, `star history` is the easiest way to rescue a rocket you liked: it appeared a few tabs ago, scroll back, find its number, save it.*
+
 ![star-show](docs/star-show.png)
 
 <!-- ![star-list](docs/star-list.png) -->
@@ -73,11 +75,11 @@ star color theme light
 
 -----
 
-## One rocket, four shells
+## Cross-shell reproducibility
 
-Open bash in one tab and PowerShell in another on the same machine on the same day — you'll get the *same rocket*. Byte-identical.
+starcommand uses a portable xorshift32 PRNG, implemented identically in bash, zsh, PowerShell, and fish. The seeding is independent per launch (every new shell rolls its own seed from `/dev/urandom`, or `Get-Random` on Windows), so each tab gets a fresh rocket — but if you feed the *same* seed to any of the four implementations, you get byte-identical output.
 
-starcommand uses a portable xorshift32 PRNG, implemented identically in bash, zsh, PowerShell, and fish, so the seed-to-palette path produces matching output across every supported shell. No more "the bash version looks different from the PowerShell version" — they're the same artifact.
+That matters because the palette is the spec. Save a palette to favorites in bash, sync `rocket_favorites.txt` to another machine running PowerShell, and that same six-hex-code line produces the same 18 stars in the same 18 positions with the same flame. Favorites are portable across every supported shell.
 
 Verified by `tests/parity_test.sh`, which runs all four shells against a fixed reference fixture and confirms zero bytes of difference.
 
@@ -100,10 +102,21 @@ Open a new tab. Done. On macOS, the installer writes to both `~/.bashrc` and `~/
 **zsh:**
 
 ```zsh
-curl -o ~/.config/zsh/zsh_greeting.zsh \
-  https://raw.githubusercontent.com/clefspear/starcommand/main/zsh_greeting.zsh
+mkdir -p ~/.config/zsh
+curl -fSL -o ~/.config/zsh/zsh_greeting.zsh \
+  https://raw.githubusercontent.com/clefspear/starcommand/main/zsh/zsh_greeting.zsh
 echo "source ~/.config/zsh/zsh_greeting.zsh" >> ~/.zshrc
 source ~/.config/zsh/zsh_greeting.zsh
+```
+
+Open a new tab. Done.
+
+**fish:**
+
+```fish
+mkdir -p ~/.config/fish/functions
+curl -fSL -o ~/.config/fish/functions/fish_greeting.fish \
+  https://raw.githubusercontent.com/clefspear/starcommand/main/fish/fish_greeting.fish
 ```
 
 Open a new tab. Done.
@@ -116,17 +129,13 @@ iwr -useb https://raw.githubusercontent.com/clefspear/starcommand/main/powershel
 
 Open a new tab. Done.
 
-> Windows users: if you hit *"running scripts is disabled on this system"*, run this once:
-> `Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned`
+> Windows users: if you hit *"running scripts is disabled on this system"*, run this once and then re-run the installer:
+>
+> ```powershell
+> Set-ExecutionPolicy -Scope CurrentUser -ExecutionPolicy RemoteSigned
+> ```
 
-**fish:**
-
-```fish
-curl -o ~/.config/fish/functions/fish_greeting.fish \
-  https://raw.githubusercontent.com/clefspear/starcommand/main/fish_greeting.fish
-```
-
-Open a new tab. Done.
+The `-fSL` flags on curl matter: `-f` makes curl fail on HTTP errors instead of writing the error body to disk, `-S` shows the error message, and `-L` follows redirects. Without `-f`, a typo'd URL silently saves "404: Not Found" as your shell greeting and you'll see `command not found: 404:` on every new tab until you fix it.
 
 -----
 
@@ -147,14 +156,15 @@ Use neon on favorites to make them pop, or on random rolls to make every shell f
 ## The math
 
 **Palette → rocket** (the visual layer):
-Each palette hex code splits into 3 bytes (R, G, B), giving 18 bytes per rocket. Those bytes index into a precomputed list of 148 candidate cells around the rocket. Each byte contributes two stars (`byte % 148` and `(byte + 73) % 148`, deduplicated). The flame is simpler: `bytes[0] % 8` picks from 8 ASCII patterns. Reproducible from the palette alone.
+Each palette hex code splits into 3 bytes (R, G, B), giving 18 bytes per rocket. Those bytes index into a precomputed list of 148 candidate cells around the rocket. Each byte contributes two stars (`byte % 148` and `(byte + 73) % 148`, deduplicated). The flame is simpler: `bytes[0] % 8` picks from 8 ASCII patterns. Reproducible from the palette alone — same six hex codes, same constellation, every time.
 
 **Seed → palette** (the cross-shell layer):
 A xorshift32 PRNG, implemented identically across all four shells, generates the palette from a seed. The PRNG state is a single 32-bit unsigned integer, advanced with the standard `x ^= x << 13; x ^= x >> 17; x ^= x << 5` step, with `& 0xFFFFFFFF` masking on shells that use signed 64-bit integers (bash, zsh). HSL-to-hex color conversion uses awk on Unix shells and PowerShell's native math, both producing identical hex output.
 
-The end result: the same seed produces the same palette in every shell, and the same palette produces the same rocket. Determinism all the way down.
+**Seed sourcing:**
+Every shell launch reads a fresh 32-bit unsigned integer from `/dev/urandom` on bash, zsh, and fish, and from `Get-Random` on PowerShell. Zero is rejected (xorshift32 sticks at zero) and re-rolled. This means every tab is a new rocket, but if you explicitly pass the same seed to any of the four implementations, you get byte-identical output — which is what makes favorites portable across shells.
 
-Verified by `tests/parity_test.sh` and `tests/prng_reference.txt` — every shell reproduces the reference fixture exactly, and the end-to-end test confirms byte-identical output across bash, zsh, PowerShell, and fish.
+Verified by `tests/parity_test.sh` and `tests/prng_reference.txt` — every shell reproduces the reference fixture exactly when given the same seed, and the end-to-end test confirms byte-identical output across bash, zsh, PowerShell, and fish.
 
 -----
 
@@ -173,17 +183,20 @@ Verified by `tests/parity_test.sh` and `tests/prng_reference.txt` — every shel
 ├── rocket_history.txt              # last 100 launches*
 └── rocket_settings.zsh             # theme, modes, weight
 
-$HOME/.starcommand/  (Windows)
-├── starcommand.ps1                 # the theme (PowerShell)
-├── rocket_favorites.txt            # saved palettes (plain text)*
-├── rocket_history.txt              # last 100 launches*
-└── rocket_settings.ps1             # theme, modes, weight
-
 ~/.config/fish/
 ├── functions/fish_greeting.fish    # the theme (fish)
 ├── rocket_favorites.txt            # saved palettes (plain text)*
 ├── rocket_history.txt              # last 100 launches*
 └── rocket_settings.fish            # theme, modes, weight
+
+# Windows (PowerShell)
+%USERPROFILE%\Documents\WindowsPowerShell\Scripts\starcommand\
+└── starcommand.ps1                 # the theme (PowerShell)
+
+%USERPROFILE%\.config\powershell\
+├── rocket_favorites.txt            # saved palettes (plain text)*
+├── rocket_history.txt              # last 100 launches*
+└── rocket_settings.ps1             # theme, modes, weight
 
 *Shareable between shells — same format. Same palette in bash_favorites
  and powershell_favorites produces the same rocket on launch.
