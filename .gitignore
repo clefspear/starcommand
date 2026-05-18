@@ -13,4 +13,4 @@ x_posts.md
 *.swo
 *~
 .idea/
-.vscode/
+.vscode/tests/outputs/
