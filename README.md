@@ -207,6 +207,54 @@ Plain text. Easy to back up, sync via dotfiles, or share.
 
 -----
 
+## Uninstall
+
+Each block removes the source line from your shell's rc file and deletes the installed scripts, favorites, history, and settings.
+
+**bash:**
+
+```bash
+for f in ~/.bashrc ~/.bash_profile; do
+  [ -f "$f" ] && sed -i '' '/starcommand.sh/d; /# >>> starcommand >>>/,/# <<< starcommand <<</d' "$f"
+done
+rm -f ~/.config/bash/starcommand.sh ~/.config/bash/rocket_favorites.txt ~/.config/bash/rocket_history.txt ~/.config/bash/rocket_settings.sh
+```
+
+**zsh:**
+
+```bash
+sed -i '' '/zsh_greeting.zsh/d; /# >>> starcommand >>>/,/# <<< starcommand <<</d' ~/.zshrc
+rm -f ~/.config/zsh/zsh_greeting.zsh ~/.config/zsh/rocket_favorites.txt ~/.config/zsh/rocket_history.txt ~/.config/zsh/rocket_settings.zsh
+```
+
+**fish:**
+
+```fish
+rm -f ~/.config/fish/functions/fish_greeting.fish ~/.config/fish/rocket_favorites.txt ~/.config/fish/rocket_history.txt ~/.config/fish/rocket_settings.fish
+```
+
+**PowerShell:**
+
+```powershell
+$profilePath = $PROFILE.CurrentUserAllHosts
+if (Test-Path $profilePath) {
+    $content = Get-Content $profilePath -Raw
+    $cleaned = [regex]::Replace($content, "(?s)\r?\n?# >>> starcommand >>>.*?# <<< starcommand <<<\r?\n?", '')
+    Set-Content -Path $profilePath -Value $cleaned.TrimEnd()
+}
+$profileDir = Split-Path $PROFILE.CurrentUserAllHosts -Parent
+Remove-Item -Recurse -Force (Join-Path $profileDir 'Scripts/starcommand') -ErrorAction SilentlyContinue
+Remove-Item -Force -ErrorAction SilentlyContinue -Path @(
+    (Join-Path $profileDir 'rocket_favorites.txt'),
+    (Join-Path $profileDir 'rocket_history.txt'),
+    (Join-Path $profileDir 'rocket_settings.ps1')
+)
+```
+
+> Linux note: the `sed -i ''` syntax above is BSD sed (macOS). On Linux/GNU sed, drop the empty string and use `sed -i '/pattern/d' file` instead.
+
+-----
+
 ## Credits
 
 Rocket ASCII art adapted from the [fishbone](https://github.com/oh-my-fish/theme-fishbone) theme by [@maxnordlund](https://github.com/maxnordlund).
