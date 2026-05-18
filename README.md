@@ -31,9 +31,9 @@ But the kicker: it's all reproducible. Save a palette to favorites and you've sa
 
 ## The `star` command
 
-![star-help](docs/star-help.png)
-
 `star help` displays the current value of every setting inline, in **bold italics**, so you can see the active state at a glance.
+
+![star-help](docs/star-help.png)
 
 ### Save and explore
 
