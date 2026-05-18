@@ -19,28 +19,16 @@ $global:_rkt_bdy = Normalize-Hex $args[2]
 $global:_rkt_top = Normalize-Hex $args[3]
 $global:_rkt_sds = Normalize-Hex $args[4]
 $global:_rkt_flm = Normalize-Hex $args[5]
-$global:_rkt_star_mode = "white"
-$global:_rkt_terminal_theme = "dark"
+$global:_rkt_star_mode = 'white'
+$global:_rkt_terminal_theme = 'dark'
 $global:_rocket_stars = Invoke-ComputeStarPositions
-
-$RocketArt = @(
-    @{ art = "        |         "; role = "        b         " }
-    @{ art = "       / \        "; role = "       t t        " }
-    @{ art = "      / _ \       "; role = "      t t t       " }
-    @{ art = "     |.o '.|      "; role = "     swp wws      " }
-    @{ art = "     |'._.'|      "; role = "     swwwwws      " }
-    @{ art = "     |     |      "; role = "     b     b      " }
-    @{ art = "   ,'|  |  |``.    "; role = "   ssb  b  bss    " }
-    @{ art = "  /  |  |  |  \   "; role = "  s  b  b  b  s   " }
-    @{ art = "  |,-'--|--'-.|   "; role = "  bsssttbttsssb   " }
-)
 
 # Row 0 (blank)
 Invoke-RenderRow 0 (' ' * 18) (' ' * 18)
 [Console]::WriteLine()
 
-for ($i = 0; $i -lt $RocketArt.Count; $i++) {
-    Invoke-RenderRow ($i + 1) $RocketArt[$i].art $RocketArt[$i].role
+for ($i = 0; $i -lt $global:RocketArt.Count; $i++) {
+    Invoke-RenderRow ($i + 1) $global:RocketArt[$i].art $global:RocketArt[$i].role
     [Console]::WriteLine()
 }
 
