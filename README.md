@@ -33,6 +33,8 @@ But the kicker: it's all reproducible. Save a palette to favorites and you've sa
 
 ![star-help](docs/star-help.png)
 
+`star help` displays the current value of every setting inline, in **bold italics**, so you can see the active state at a glance.
+
 ### Save and explore
 
 |                  |                                           |
@@ -62,8 +64,6 @@ But the kicker: it's all reproducible. Save a palette to favorites and you've sa
 |`star color favorite <gold\|neon>`|Star color on favorite rockets                   |
 |`star color reset`               |Restore defaults                                 |
 |`star weight <0-100>`            |Ratio of favorites to random rockets (default 20)|
-
-`star help` displays the current value of every setting inline, in **bold italics**, so you can see the active state at a glance.
 
 Light-mode terminal? Run this once so stars stay readable:
 
