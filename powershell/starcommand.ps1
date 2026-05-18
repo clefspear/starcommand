@@ -30,11 +30,9 @@ function Invoke-Djb2 {
 }
 
 function Set-PrngSeed {
-    $hostname = & hostname 2>$null
-    if ($LASTEXITCODE -ne 0 -or -not $hostname) { $hostname = 'localhost' }
-    $hostname = $hostname.Split('.')[0].ToLowerInvariant()
-    $dateStr = Get-Date -Format 'yyyy.MM.dd'
-    $script:_RKT_PRNG_STATE = Invoke-Djb2 "$hostname.$dateStr"
+    do {
+        $script:_RKT_PRNG_STATE = [uint32](Get-Random -Maximum ([uint32]::MaxValue))
+    } while ($script:_RKT_PRNG_STATE -eq 0)
 }
 
 function Get-PrngRange {
@@ -42,15 +40,6 @@ function Get-PrngRange {
     $script:_RKT_PRNG_STATE = Invoke-XorShift32 $script:_RKT_PRNG_STATE
     $range = $Max - $Min + 1
     return ($Min + ([int]($script:_RKT_PRNG_STATE % $range)))
-}
-
-function Get-RocketSeed {
-    $hostname = & hostname 2>$null
-    if ($LASTEXITCODE -ne 0 -or -not $hostname) { $hostname = 'localhost' }
-    $hostname = $hostname.Split('.')[0].ToLowerInvariant()
-    $dateStr = Get-Date -Format 'yyyy.MM.dd'
-    $seedStr = "$hostname.$dateStr"
-    return (Invoke-Djb2 $seedStr), $seedStr
 }
 
 function Get-RandomInt {
@@ -1120,7 +1109,7 @@ function Invoke-Starcommand {
 
 # Export functions for testing
 $exported = @(
-    'Invoke-XorShift32', 'Invoke-Djb2', 'Get-RocketSeed', 'Get-RandomInt',
+    'Invoke-XorShift32', 'Invoke-Djb2', 'Get-RandomInt',
     'Set-RocketColor', 'Convert-HslToHex', 'Invoke-RenderRow', 'Invoke-RenderFlame',
     'Invoke-PaletteBytes', 'Invoke-ComputeStarPositions', 'Invoke-GenRocketPalette',
     'Invoke-Starcommand', 'Get-StarColorForMode', 'Get-PrngRange', 'Set-PrngSeed',

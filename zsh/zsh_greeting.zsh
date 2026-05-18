@@ -29,10 +29,10 @@ _rkt_djb2() {
 
 _rkt_prng_seed() {
   emulate -L zsh
-  local hostname=$(hostname -s 2>/dev/null || echo "localhost")
-  hostname=${hostname:l}
-  local date_str=$(date +%Y.%m.%d)
-  typeset -g _RKT_PRNG_STATE=$(_rkt_djb2 "$hostname.$date_str")
+  while true; do
+    typeset -g _RKT_PRNG_STATE=$(od -An -N4 -tu4 /dev/urandom | tr -d ' ')
+    (( _RKT_PRNG_STATE != 0 )) && break
+  done
 }
 
 _rkt_prng_range() {

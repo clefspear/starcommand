@@ -27,10 +27,10 @@ function _rkt_djb2 --argument-names str
 end
 
 function _rkt_prng_seed
-    set -l hname (hostname -s 2>/dev/null; or echo "localhost")
-    set -l hname (string lower -- "$hname")
-    set -l date_str (date +%Y.%m.%d)
-    set -g _RKT_PRNG_STATE (_rkt_djb2 "$hname.$date_str")
+    while true
+        set -g _RKT_PRNG_STATE (od -An -N4 -tu4 /dev/urandom | string trim)
+        test $_RKT_PRNG_STATE -ne 0; and break
+    end
 end
 
 function _rkt_prng_range --argument-names min max

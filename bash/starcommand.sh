@@ -26,11 +26,10 @@ rkt_djb2() {
 }
 
 rkt_prng_seed() {
-    local hostname date_str seed
-    hostname=$(hostname -s 2>/dev/null || echo "localhost")
-    hostname=$(printf '%s' "$hostname" | tr '[:upper:]' '[:lower:]')
-    date_str=$(date +%Y.%m.%d)
-    _RKT_PRNG_STATE=$(rkt_djb2 "$hostname.$date_str")
+    while :; do
+        _RKT_PRNG_STATE=$(od -An -N4 -tu4 /dev/urandom | tr -d ' ')
+        [ "$_RKT_PRNG_STATE" -ne 0 ] && break
+    done
 }
 
 rkt_prng_range() {
@@ -38,16 +37,6 @@ rkt_prng_range() {
     _RKT_PRNG_STATE=$(rkt_xorshift32 "$_RKT_PRNG_STATE")
     range=$((max - min + 1))
     _RKT_PRNG_RET=$((min + (_RKT_PRNG_STATE % range)))
-}
-
-rkt_seed() {
-    local hostname date_str seed
-    hostname=$(hostname -s 2>/dev/null || echo "localhost")
-    hostname=$(printf '%s' "$hostname" | tr '[:upper:]' '[:lower:]')
-    date_str=$(date +%Y.%m.%d)
-    seed=$(rkt_djb2 "$hostname.$date_str")
-    echo "$seed"
-    echo "$hostname.$date_str"
 }
 
 # ── Color utilities ────────────────────────────────────────────────────────────
