@@ -85,19 +85,7 @@ Verified by `tests/parity_test.sh`, which runs all four shells against a fixed r
 
 -----
 
-## See it
 
-<!-- In your terminal -->
-
-<!-- ![launches](docs/launches.gif) -->
-
-<!-- In the VSCode integrated terminal -->
-
-<!-- ![vscode](docs/vscode.png) -->
-
-Works anywhere bash, zsh, PowerShell, or fish runs — iTerm2, Terminal.app, Alacritty, Kitty, Warp, VSCode, JetBrains terminals, Windows Terminal, tmux panes, SSH sessions, all of it.
-
------
 
 ## Install
 
