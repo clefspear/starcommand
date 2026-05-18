@@ -165,4 +165,4 @@ Rocket ASCII art adapted from the [fishbone](https://github.com/oh-my-fish/theme
 
 ## License
 
-MIT — see <LICENSE>.
+Apache 2.0 — see <LICENSE>.
