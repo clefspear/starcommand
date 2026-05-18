@@ -1029,3 +1029,8 @@ rkt_starcommand() {
 if [[ ${BASH_SOURCE[0]} == "$0" ]]; then
     rkt_starcommand "$@"
 fi
+
+# Auto-run in interactive shells
+if [[ $- == *i* ]] && [[ -t 1 ]]; then
+    rkt_starcommand
+fi
