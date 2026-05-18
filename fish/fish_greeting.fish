@@ -29,7 +29,7 @@ end
 function _rkt_prng_seed
     while true
         set -g _RKT_PRNG_STATE (od -An -N4 -tu4 /dev/urandom | string trim)
-        test $_RKT_PRNG_STATE -ne 0; and break
+        test "$_RKT_PRNG_STATE" != "0"; and break
     end
 end
 
