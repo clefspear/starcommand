@@ -9,13 +9,13 @@ _RKT_PRNG_STATE=$1
 _RKT_STAR_MODE=white
 _RKT_TERMINAL_THEME=dark
 
-result=($(rkt_gen_rocket_palette $_RKT_PRNG_STATE))
-_RKT_TIP=${result[1]}
-_RKT_WIN=${result[2]}
-_RKT_BDY=${result[3]}
-_RKT_TOP=${result[4]}
-_RKT_SDS=${result[5]}
-_RKT_FLM=${result[6]}
+colors=($(rkt_gen_rocket_palette))
+_RKT_TIP=${colors[0]}
+_RKT_WIN=${colors[1]}
+_RKT_BDY=${colors[2]}
+_RKT_TOP=${colors[3]}
+_RKT_SDS=${colors[4]}
+_RKT_FLM=${colors[5]}
 _ROCKET_STARS=($(rkt_compute_star_positions))
 
 rkt_render_row 0 "                  " "                  "
