@@ -25,6 +25,7 @@ rkt_djb2() {
 rkt_seed() {
     local hostname date_str seed
     hostname=$(hostname -s 2>/dev/null || echo "localhost")
+    hostname=$(printf '%s' "$hostname" | tr '[:upper:]' '[:lower:]')
     date_str=$(date +%Y.%m.%d)
     seed=$(rkt_djb2 "$hostname.$date_str")
     echo "$seed"

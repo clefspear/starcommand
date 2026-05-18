@@ -28,6 +28,7 @@ end
 
 function _rkt_prng_seed
     set -l hname (hostname -s 2>/dev/null; or echo "localhost")
+    set -l hname (string lower -- "$hname")
     set -l date_str (date +%Y.%m.%d)
     set -g _RKT_PRNG_STATE (_rkt_djb2 "$hname.$date_str")
 end

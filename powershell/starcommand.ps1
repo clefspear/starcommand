@@ -44,7 +44,7 @@ function Get-RocketSeed {
     #>
     $hostname = & hostname 2>$null
     if ($LASTEXITCODE -ne 0 -or -not $hostname) { $hostname = "localhost" }
-    $hostname = $hostname.Split('.')[0]  # short name
+    $hostname = $hostname.Split('.')[0].ToLowerInvariant()  # short name, normalized
     $dateStr = Get-Date -Format "yyyy.MM.dd"
     $seedStr = "$hostname.$dateStr"
     return (Invoke-Djb2 $seedStr), $seedStr

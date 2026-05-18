@@ -30,6 +30,7 @@ _rkt_djb2() {
 _rkt_prng_seed() {
   emulate -L zsh
   local hostname=$(hostname -s 2>/dev/null || echo "localhost")
+  hostname=${hostname:l}
   local date_str=$(date +%Y.%m.%d)
   typeset -g _RKT_PRNG_STATE=$(_rkt_djb2 "$hostname.$date_str")
 }
