@@ -1,5 +1,6 @@
 #!/usr/bin/env pwsh
-# Install starcommand.ps1 into PowerShell profile via remote download
+# Install starcommand.ps1 into PowerShell profile via remote download.
+# Works on Windows PowerShell 5.1 and PowerShell 7+ (Windows / macOS / Linux).
 
 $ErrorActionPreference = 'Stop'
 
@@ -7,23 +8,36 @@ $repo    = 'clefspear/starcommand'
 $branch  = 'main'
 $rawBase = "https://raw.githubusercontent.com/$repo/$branch/powershell"
 
-# 1. Pick a stable install location for starcommand.ps1
-$installDir = Join-Path $env:USERPROFILE 'Documents\WindowsPowerShell\Scripts\starcommand'
+# 1. Detect platform. Windows PowerShell 5.1 doesn't define $IsWindows,
+#    so treat a null value as Windows.
+$isWindowsHost = if ($null -eq $IsWindows) { $true } else { [bool]$IsWindows }
+
+# 2. Pick a stable install location for starcommand.ps1.
+#    Anchor it to the same directory as the user's PowerShell profile so it
+#    naturally lives next to .config/powershell on macOS/Linux and
+#    Documents\PowerShell (or WindowsPowerShell on 5.1) on Windows.
+$profileBaseDir = Split-Path -Parent $PROFILE.CurrentUserAllHosts
+$installDir     = Join-Path $profileBaseDir (Join-Path 'Scripts' 'starcommand')
+
 if (-not (Test-Path $installDir)) {
     New-Item -ItemType Directory -Path $installDir -Force | Out-Null
 }
 $starcommandPath = Join-Path $installDir 'starcommand.ps1'
 
-# 2. Download starcommand.ps1 to that location
+# 3. Download starcommand.ps1
 Invoke-WebRequest -UseBasicParsing -Uri "$rawBase/starcommand.ps1" -OutFile $starcommandPath
 
-# 3. Ensure execution policy allows running scripts
-$currentPolicy = Get-ExecutionPolicy -Scope CurrentUser
-if ($currentPolicy -in 'Restricted', 'Undefined') {
-    Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+# 4. Ensure execution policy allows scripts. Execution policy is a Windows-only
+#    concept; PS7 on macOS/Linux ignores it, so skip there to avoid a noisy
+#    "operation not supported on this platform" message on some builds.
+if ($isWindowsHost) {
+    $currentPolicy = Get-ExecutionPolicy -Scope CurrentUser
+    if ($currentPolicy -in 'Restricted', 'Undefined') {
+        Set-ExecutionPolicy -ExecutionPolicy RemoteSigned -Scope CurrentUser -Force
+    }
 }
 
-# 4. Make sure the profile exists, then write a fenced starcommand block.
+# 5. Make sure the profile exists, then write a fenced starcommand block.
 #    Fence markers make the block idempotent: re-running this installer
 #    replaces the old block instead of appending duplicates.
 $profilePath = $PROFILE.CurrentUserAllHosts
@@ -53,7 +67,7 @@ $cleaned = $cleaned.TrimEnd()
 $separator = if ($cleaned) { "`r`n`r`n" } else { '' }
 Set-Content -Path $profilePath -Value ($cleaned + $separator + $profileBlock + "`r`n")
 
-# 5. Load it into the current session too, so the user doesn't have to restart
+# 6. Load it into the current session too, so the user doesn't have to restart
 . $starcommandPath
 Invoke-Starcommand
 

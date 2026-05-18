@@ -1,7 +1,12 @@
 # zsh_greeting.zsh — Rocketfish zsh port
 # Deterministic rocket + starfield greeting for zsh
 # Ported from fish_greeting.fish
-# Source this from .zshrc:  source ~/.config/zsh/zsh_greeting.zsh
+#
+# Install:
+#   curl -fsSL https://raw.githubusercontent.com/clefspear/starcommand/main/zsh/zsh_greeting.zsh | zsh
+#
+# Or source manually from .zshrc:
+#   source ~/.config/zsh/zsh_greeting.zsh
 
 # ── Portable xorshift32 PRNG ───────────────────────────────────────────────────
 
@@ -907,6 +912,83 @@ show_net_info() {
   _rkt_set_color normal
 }
 
-if [[ -o interactive ]] && [[ -t 1 ]]; then
+# ── Self-installer / auto-run dispatcher ─────────────────────────────────────
+#
+# Behavior depends on how this file is invoked:
+#
+#   Sourced (e.g. from .zshrc):      define functions, run greeting if interactive
+#   Executed directly (curl|zsh,     download self to ~/.config/zsh/ and
+#   `zsh zsh_greeting.zsh`):         add a fenced source block to .zshrc
+#
+# Detection uses ZSH_EVAL_CONTEXT:
+#   - "toplevel"               → executed directly
+#   - "toplevel:file" or       → sourced
+#     "toplevel:file:file"
+#
+# Cross-OS: works on macOS, Linux, and WSL (anywhere zsh + curl/wget are
+# available). Uses POSIX awk/grep/mv/touch only — no GNU-specific flags.
+
+_starcommand_install() {
+  emulate -L zsh
+  setopt local_options no_unset pipe_fail
+
+  local repo='clefspear/starcommand'
+  local branch='main'
+  local raw_url="https://raw.githubusercontent.com/${repo}/${branch}/zsh/zsh_greeting.zsh"
+
+  local install_dir="${HOME}/.config/zsh"
+  local install_path="${install_dir}/zsh_greeting.zsh"
+  local profile="${HOME}/.zshrc"
+
+  mkdir -p "$install_dir" || { echo "Could not create $install_dir" >&2; return 1; }
+
+  # Download self to a stable location
+  if command -v curl >/dev/null 2>&1; then
+    curl -fsSL "$raw_url" -o "$install_path" || { echo "Download failed" >&2; return 1; }
+  elif command -v wget >/dev/null 2>&1; then
+    wget -q "$raw_url" -O "$install_path" || { echo "Download failed" >&2; return 1; }
+  else
+    echo "Need curl or wget to install starcommand." >&2
+    return 1
+  fi
+
+  # Update .zshrc idempotently with fenced block
+  local begin_marker='# >>> starcommand >>>'
+  local end_marker='# <<< starcommand <<<'
+  local source_line=". \"$install_path\""
+
+  touch "$profile"
+
+  # Strip any prior fenced starcommand block
+  if grep -Fq "$begin_marker" "$profile"; then
+    awk -v b="$begin_marker" -v e="$end_marker" '
+      $0 == b {skip=1; next}
+      $0 == e {skip=0; next}
+      !skip {print}
+    ' "$profile" > "${profile}.tmp" && mv "${profile}.tmp" "$profile"
+  fi
+
+  # Strip any legacy bare references to starcommand
+  if grep -Fq "starcommand" "$profile"; then
+    grep -v 'starcommand' "$profile" > "${profile}.tmp" && mv "${profile}.tmp" "$profile"
+  fi
+
+  # Append the fresh block
+  {
+    echo ""
+    echo "$begin_marker"
+    echo "$source_line"
+    echo "$end_marker"
+  } >> "$profile"
+
+  echo ""
+  echo "starcommand installed to $install_path"
+  echo "Restart your shell (or run: exec zsh) to see the greeting."
+  echo "Type 'star help' for commands."
+}
+
+if [[ "${ZSH_EVAL_CONTEXT-}" == "toplevel" ]]; then
+  _starcommand_install
+elif [[ -o interactive ]] && [[ -t 1 ]]; then
   _rkt_greeting
 fi

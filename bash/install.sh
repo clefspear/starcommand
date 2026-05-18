@@ -61,6 +61,8 @@ fi
 
 # 2. Update each profile: strip any prior starcommand block, append a fresh one.
 #    Fence markers make this idempotent across re-runs.
+#    starcommand.sh auto-runs the greeting itself when sourced from an
+#    interactive shell, so the block only needs to source it.
 update_profile() {
     profile="$1"
 
@@ -93,7 +95,6 @@ update_profile() {
         echo ""
         echo "$BEGIN_MARKER"
         echo "$SOURCE_LINE"
-        echo "rkt_starcommand"
         echo "$END_MARKER"
     } >> "$profile"
 }
