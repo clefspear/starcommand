@@ -172,7 +172,7 @@ Verified by `tests/parity_test.sh` and `tests/prng_reference.txt` — every shel
 
 ```
 ~/.config/bash/
-├── bash_greeting.sh                # the theme (bash)
+├── starcommand.sh                  # the theme (bash)
 ├── rocket_favorites.txt            # saved palettes (plain text)*
 ├── rocket_history.txt              # last 100 launches*
 └── rocket_settings.sh              # theme, modes, weight
