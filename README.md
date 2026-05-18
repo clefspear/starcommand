@@ -48,9 +48,9 @@ But the kicker: it's all reproducible. Save a palette to favorites and you've sa
 |`star add H1..H6` |Add a custom palette to favorites          |
 |`star explore [N]`|Browse `N` random palettes (default 5)     |
 
-![star-show](docs/star-show.png)
-
 *`star show` previews any 6 hex codes as a full rocket before saving — useful for vibe-checking a palette you found.*
+
+![star-show](docs/star-show.png)
 
 <!-- ![star-list](docs/star-list.png) -->
 
