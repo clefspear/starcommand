@@ -133,9 +133,9 @@ function Convert-HslToHex {
     } else {
         $r = $c; $g = 0.0; $b = $x
     }
-    $ri = [Math]::Round(($r + $m) * 255.0)
-    $gi = [Math]::Round(($g + $m) * 255.0)
-    $bi = [Math]::Round(($b + $m) * 255.0)
+    $ri = [int][Math]::Round(($r + $m) * 255.0)
+    $gi = [int][Math]::Round(($g + $m) * 255.0)
+    $bi = [int][Math]::Round(($b + $m) * 255.0)
     return "{0:x2}{1:x2}{2:x2}" -f $ri, $gi, $bi
 }
 

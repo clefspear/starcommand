@@ -3,10 +3,45 @@
 # Ported from fish_greeting.fish
 # Source this from .zshrc:  source ~/.config/zsh/zsh_greeting.zsh
 
-_rkt_random() {
+# ── Portable xorshift32 PRNG ───────────────────────────────────────────────────
+
+_RKT_PRNG_STATE=0
+
+_rkt_xorshift32() {
   emulate -L zsh
-  local min=${1:-0} max=${2:-32767}
-  echo $(( RANDOM % (max - min + 1) + min ))
+  local s=$1
+  s=$(( (s ^ (s << 13)) & 0xFFFFFFFF ))
+  s=$(( (s ^ (s >> 17)) & 0xFFFFFFFF ))
+  s=$(( (s ^ (s << 5)) & 0xFFFFFFFF ))
+  echo $s
+}
+
+_rkt_djb2() {
+  emulate -L zsh
+  local str=$1 h=5381 i c
+  for ((i=1; i<=${#str}; i++)); do
+    printf -v c '%d' "'${str[$i]}"
+    h=$(( (h * 33 + c) & 0xFFFFFFFF ))
+  done
+  (( h == 0 )) && h=1
+  echo $h
+}
+
+_rkt_prng_seed() {
+  emulate -L zsh
+  local hostname=$(hostname -s 2>/dev/null || echo "localhost")
+  local date_str=$(date +%Y.%m.%d)
+  typeset -g _RKT_PRNG_STATE=$(_rkt_djb2 "$hostname.$date_str")
+}
+
+_rkt_prng_range() {
+  emulate -L zsh
+  local min=$1 max=$2 range
+  _RKT_PRNG_STATE=$(( ( (_RKT_PRNG_STATE ^ (_RKT_PRNG_STATE << 13)) & 0xFFFFFFFF ) ))
+  _RKT_PRNG_STATE=$(( ( (_RKT_PRNG_STATE ^ (_RKT_PRNG_STATE >> 17)) & 0xFFFFFFFF ) ))
+  _RKT_PRNG_STATE=$(( ( (_RKT_PRNG_STATE ^ (_RKT_PRNG_STATE << 5)) & 0xFFFFFFFF ) ))
+  range=$((max - min + 1))
+  _RKT_PRNG_RET=$((min + (_RKT_PRNG_STATE % range)))
 }
 
 _rkt_set_color() {
@@ -44,7 +79,7 @@ _rkt_set_color() {
 }
 
 _hsl_to_hex() {
-  printf '%s\n' "$1" "$2" "$3" | awk '{
+  printf '%s %s %s\n' "$1" "$2" "$3" | awk '{
     h = $1; s = $2; l_in = $3
     sat = s / 100
     light = l_in / 100
@@ -112,10 +147,11 @@ _rkt_print_option() {
 
 _gen_rocket_palette() {
   emulate -L zsh
-  local h_base=$(_rkt_random 0 359)
-  local scheme=$(_rkt_random 0 4)
-  local sat=$(_rkt_random 65 90)
-  local light=$(_rkt_random 55 72)
+  typeset -g -a _RKT_GEN_PALETTE=()
+  _rkt_prng_range 0 359; local h_base=$_RKT_PRNG_RET
+  _rkt_prng_range 0 4; local scheme=$_RKT_PRNG_RET
+  _rkt_prng_range 65 90; local sat=$_RKT_PRNG_RET
+  _rkt_prng_range 55 72; local light=$_RKT_PRNG_RET
   local -a offs
   case $scheme in
     0) offs=(0 60 120 180 240 300) ;;
@@ -126,7 +162,7 @@ _gen_rocket_palette() {
   esac
   for off in "${offs[@]}"; do
     local h=$(( (h_base + off) % 360 ))
-    _hsl_to_hex "$h" "$sat" "$light"
+    _RKT_GEN_PALETTE+=($(_hsl_to_hex "$h" "$sat" "$light"))
   done
 }
 
@@ -149,8 +185,10 @@ _rkt_neon_color() {
     00FFCC 00FFFF 00CCFF 0099FF 0066FF 0033FF 3300FF
     6600FF 9900FF CC00FF FF00FF FF00CC FF0099 FF0066
   )
-  echo "${neons[$(_rkt_random 1 ${#neons})]}"
+  _rkt_prng_range 1 ${#neons}
+  _RKT_PRNG_RET="${neons[$_RKT_PRNG_RET]}"
 }
+
 
 _rkt_neon_color_light() {
   emulate -L zsh
@@ -160,8 +198,10 @@ _rkt_neon_color_light() {
     008B7F 008B8B 0077AA 1E6FB8 0055CC 0033AA 2200AA
     4B0082 6622AA 7B1FA2 A020A0 AA0088 AD1457 AA0044
   )
-  echo "${neons[$(_rkt_random 1 ${#neons})]}"
+  _rkt_prng_range 1 ${#neons}
+  _RKT_PRNG_RET="${neons[$_RKT_PRNG_RET]}"
 }
+
 
 _palette_is_favorite() {
   emulate -L zsh
@@ -240,9 +280,9 @@ _rkt_star_color_for_mode() {
   case $_rkt_star_mode in
     gold)
       if [[ "$_rkt_terminal_theme" == light ]]; then
-        echo B8860B
+        _RKT_PRNG_RET="B8860B"
       else
-        echo FFE600
+        _RKT_PRNG_RET="FFE600"
       fi
       ;;
     neon)
@@ -254,9 +294,9 @@ _rkt_star_color_for_mode() {
       ;;
     *)
       if [[ "$_rkt_terminal_theme" == light ]]; then
-        echo 333333
+        _RKT_PRNG_RET="333333"
       else
-        echo FFFFFF
+        _RKT_PRNG_RET="FFFFFF"
       fi
       ;;
   esac
@@ -282,7 +322,8 @@ _render_row() {
       printf '%s' "$char"
       _rkt_set_color normal
     elif (( ${_rocket_stars[(Ie)$key]} )); then
-      _rkt_set_color "$(_rkt_star_color_for_mode)"
+      _rkt_star_color_for_mode
+      _rkt_set_color "$_RKT_PRNG_RET"
       printf '*'
       _rkt_set_color normal
     else
@@ -308,18 +349,21 @@ _rocket_pick_palette() {
   emulate -L zsh
   local fav_file="$HOME/.config/zsh/rocket_favorites.txt"
   local -a colors=()
-  if (( $(_rkt_random 1 100) <= $_rkt_favorite_weight )) && [[ -f "$fav_file" ]]; then
+  _rkt_prng_range 1 100
+  if (( _RKT_PRNG_RET <= $_rkt_favorite_weight )) && [[ -f "$fav_file" ]]; then
     local -a favs=("${(@f)"$(<$fav_file)"}")
     if (( ${#favs} > 0 )); then
-      local rand_idx=$(_rkt_random 1 ${#favs})
+      _rkt_prng_range 1 ${#favs}
+      local rand_idx=$_RKT_PRNG_RET
       colors=("${(s: :)favs[$rand_idx]}")
     fi
   fi
   if (( ${#colors} != 6 )); then
-    colors=($(_gen_rocket_palette))
+    _gen_rocket_palette
+    colors=("${_RKT_GEN_PALETTE[@]}")
   fi
   _rocket_record_history "${colors[@]}"
-  printf '%s\n' "${colors[@]}"
+  typeset -g -a _RKT_PALETTE=("${colors[@]}")
 }
 
 _star_validate_hexes() {
@@ -753,10 +797,12 @@ _rkt_net_info() {
 
 _rkt_greeting() {
   emulate -L zsh
+  _rkt_prng_seed
   _rkt_hw_info
   _rkt_net_info
   _rkt_load_settings
-  local -a colors=($(_rocket_pick_palette))
+  _rocket_pick_palette
+  local -a colors=("${_RKT_PALETTE[@]}")
   typeset -g _rkt_tip="${colors[1]}"
   typeset -g _rkt_win="${colors[2]}"
   typeset -g _rkt_bdy="${colors[3]}"
