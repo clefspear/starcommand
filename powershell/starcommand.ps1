@@ -391,7 +391,7 @@ function Test-ValidateHexes {
     foreach ($raw in $args) {
         $cleaned = $raw -replace '^#', ''
         if ($cleaned -notmatch '^[0-9a-fA-F]{6}$') { return $null }
-        $hexes += $cleaned.ToLower()
+        $hexes += $cleaned
     }
     return $hexes
 }

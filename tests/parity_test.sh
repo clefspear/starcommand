@@ -89,4 +89,60 @@ for seed in "${seeds[@]}"; do
     fi
 done
 
+# ═══════════════════════════════════════════════════════════════════
+# Star command parity test
+# ═══════════════════════════════════════════════════════════════════
+echo ""
+echo "═ Star command parity test ════════════════════════════════════"
+echo ""
+
+clean_star_state() {
+    rm -f "$HOME/.config/fish/rocket_favorites.txt"      "$HOME/.config/fish/rocket_history.txt"      "$HOME/.config/fish/rocket_settings.sh"
+    rm -f "$HOME/.config/zsh/rocket_favorites.txt"       "$HOME/.config/zsh/rocket_history.txt"       "$HOME/.config/zsh/rocket_settings.zsh"
+    rm -f "$HOME/.config/bash/rocket_favorites.txt"      "$HOME/.config/bash/rocket_history.txt"      "$HOME/.config/bash/rocket_settings.sh"
+    rm -f "$HOME/.config/powershell/rocket_favorites.txt" "$HOME/.config/powershell/rocket_history.txt" "$HOME/.config/powershell/rocket_settings.ps1"
+}
+
+SEQDIR=$(mktemp -d)
+clean_star_state 2>/dev/null || true
+
+SEQUENCE='star color reset; star add 3A7BDF E85D3A 2ECC71 F1C40F 9B59B6 1ABC9C; star list; star color theme light; star color random neon; star; star list; star color reset'
+
+fish  -c "source $DIR/fish_greeting.fish;    $SEQUENCE" 2>/dev/null > "$SEQDIR/fish.txt"
+clean_star_state 2>/dev/null || true
+zsh   -c "source $DIR/zsh_greeting.zsh;     $SEQUENCE" 2>/dev/null > "$SEQDIR/zsh.txt"
+clean_star_state 2>/dev/null || true
+bash  -c "source $DIR/bash/starcommand.sh;   $SEQUENCE" 2>/dev/null > "$SEQDIR/bash.txt"
+clean_star_state 2>/dev/null || true
+pwsh -NoProfile -NoLogo -NonInteractive -Command ". $DIR/powershell/starcommand.ps1; $SEQUENCE" 2>/dev/null > "$SEQDIR/pwsh.txt"
+
+all_ok=true
+for sh in zsh bash pwsh; do
+    if cmp -s "$SEQDIR/fish.txt" "$SEQDIR/${sh}.txt"; then
+        printf "  fish vs %-5s  PASS" "$sh"
+        echo "  ($(wc -c < "$SEQDIR/fish.txt") bytes)"
+    else
+        printf "  fish vs %-5s  FAIL" "$sh"
+        fsz=$(wc -c < "$SEQDIR/fish.txt")
+        ssz=$(wc -c < "$SEQDIR/${sh}.txt")
+        echo "  (fish=$fsz, $sh=$ssz)"
+        all_ok=false
+    fi
+done
+
+rm -rf "$SEQDIR"
+clean_star_state 2>/dev/null || true
+echo ""
+if $all_ok; then
+    echo "  Star command parity: PASS"
+    ((PASS++))
+else
+    echo "  Star command parity: FAIL"
+    ((FAIL++))
+fi
+
+echo ""
+echo "═══════════════════════════════════════════════════════════════════"
+echo "Results: $PASS passed, $FAIL failed"
+
 exit $FAIL
