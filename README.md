@@ -209,7 +209,7 @@ Plain text. Easy to back up, sync via dotfiles, or share.
 
 ## Uninstall
 
-Each block removes the source line from your shell's rc file and deletes the installed scripts, favorites, history, and settings.
+Each block removes the source line from your shell's run command file and deletes the installed scripts, favorites, history, and settings.
 
 **\*bash:**
 
