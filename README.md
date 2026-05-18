@@ -85,8 +85,6 @@ Verified by `tests/parity_test.sh`, which runs all four shells against a fixed r
 
 -----
 
-
-
 ## Install
 
 Requires bash ≥ 3.2 (macOS default), zsh ≥ 5.0, PowerShell ≥ 5.1, or fish ≥ 3.0.
