@@ -1,53 +1,36 @@
 #!/usr/bin/env pwsh
-# Install starcommand.ps1 into PowerShell profile
-# Usage: pwsh -File install.ps1 [-ProfilePath <path>] [-WhatIf]
+# Install starcommand.ps1 into PowerShell profile via remote download
 
-param(
-    [string]$ProfilePath,
-    [switch]$WhatIf
-)
+$ErrorActionPreference = 'Stop'
 
-$scriptDir = Split-Path -Parent $MyInvocation.MyCommand.Path
-if (-not $ProfilePath) { $ProfilePath = $PROFILE }
+$repo    = 'clefspear/starcommand'
+$branch  = 'main'
+$rawBase = "https://raw.githubusercontent.com/$repo/$branch/powershell"
 
-$starcommandPath = Join-Path $scriptDir "starcommand.ps1"
-if (-not (Test-Path $starcommandPath)) {
-    Write-Error "starcommand.ps1 not found at: $starcommandPath"
-    exit 1
+# 1. Pick a stable install location for starcommand.ps1
+$installDir = Join-Path $env:USERPROFILE 'Documents\WindowsPowerShell\Scripts\starcommand'
+if (-not (Test-Path $installDir)) {
+    New-Item -ItemType Directory -Path $installDir -Force | Out-Null
+}
+$starcommandPath = Join-Path $installDir 'starcommand.ps1'
+
+# 2. Download starcommand.ps1 to that location
+Invoke-WebRequest -UseBasicParsing -Uri "$rawBase/starcommand.ps1" -OutFile $starcommandPath
+
+# 3. Make sure the profile exists, then add a dot-source line if it isn't there
+$profilePath = $PROFILE.CurrentUserAllHosts
+$profileDir  = Split-Path -Parent $profilePath
+if (-not (Test-Path $profileDir))  { New-Item -ItemType Directory -Path $profileDir -Force | Out-Null }
+if (-not (Test-Path $profilePath)) { New-Item -ItemType File      -Path $profilePath -Force | Out-Null }
+
+$dotSourceLine = ". `"$starcommandPath`""
+$existing = Get-Content $profilePath -Raw -ErrorAction SilentlyContinue
+if ($existing -notmatch [regex]::Escape($dotSourceLine)) {
+    Add-Content -Path $profilePath -Value "`r`n$dotSourceLine"
 }
 
-$profileDir = Split-Path -Parent $ProfilePath
-if (-not (Test-Path $profileDir)) {
-    if ($WhatIf) {
-        Write-Host "Would create directory: $profileDir"
-    } else {
-        New-Item -ItemType Directory -Path $profileDir -Force | Out-Null
-    }
-}
+# 4. Load it into the current session too, so the user doesn't have to restart
+. $starcommandPath
 
-$dotSourceLine = ". '$starcommandPath'"
-
-if (Test-Path $ProfilePath) {
-    $profileContent = Get-Content $ProfilePath -Raw
-    if ($profileContent -match [regex]::Escape($dotSourceLine)) {
-        Write-Host "starcommand.ps1 already installed in $ProfilePath" -ForegroundColor Yellow
-        . $starcommandPath
-        exit 0
-    }
-    $profileContent = $profileContent.TrimEnd() + "`r`n`r`n"
-} else {
-    $profileContent = ""
-}
-
-$profileContent += "# starcommand - cross-shell rocket greeting`r`n"
-$profileContent += $dotSourceLine + "`r`n"
-
-if ($WhatIf) {
-    Write-Host "Would write to $ProfilePath :"
-    Write-Host $profileContent
-} else {
-    $profileContent | Out-File $ProfilePath -Encoding utf8
-    . $starcommandPath
-    Write-Host "starcommand.ps1 installed to $ProfilePath" -ForegroundColor Green
-    Write-Host "Run 'Invoke-Starcommand' to display your rocket greeting." -ForegroundColor Cyan
-}
+Write-Host "starcommand installed to $starcommandPath" -ForegroundColor Green
+Write-Host "Run 'Invoke-Starcommand' to display your rocket greeting." -ForegroundColor Green
