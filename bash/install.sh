@@ -93,6 +93,7 @@ update_profile() {
         echo ""
         echo "$BEGIN_MARKER"
         echo "$SOURCE_LINE"
+        echo "rkt_starcommand"
         echo "$END_MARKER"
     } >> "$profile"
 }
