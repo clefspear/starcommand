@@ -3,13 +3,10 @@
 set -g _RKT_PRNG_STATE 0
 
 function _rkt_xorshift32 --argument-names s
-    perl -e '
-        my $s = int($ARGV[0]);
-        $s = ($s ^ ($s << 13)) & 0xFFFFFFFF;
-        $s = ($s ^ ($s >> 17)) & 0xFFFFFFFF;
-        $s = ($s ^ ($s << 5)) & 0xFFFFFFFF;
-        print $s
-    ' $s
+    set s (math --scale=0 "bitxor($s, ($s * 8192)) % 4294967296")
+    set s (math --scale=0 "bitxor($s, floor($s / 131072)) % 4294967296")
+    set s (math --scale=0 "bitxor($s, ($s * 32)) % 4294967296")
+    echo $s
 end
 
 function _rkt_djb2 --argument-names str
@@ -34,7 +31,9 @@ function _rkt_prng_seed
 end
 
 function _rkt_prng_range --argument-names min max
-    set -g _RKT_PRNG_STATE (_rkt_xorshift32 $_RKT_PRNG_STATE)
+    set -g _RKT_PRNG_STATE (math --scale=0 "bitxor($_RKT_PRNG_STATE, ($_RKT_PRNG_STATE * 8192)) % 4294967296")
+    set -g _RKT_PRNG_STATE (math --scale=0 "bitxor($_RKT_PRNG_STATE, floor($_RKT_PRNG_STATE / 131072)) % 4294967296")
+    set -g _RKT_PRNG_STATE (math --scale=0 "bitxor($_RKT_PRNG_STATE, ($_RKT_PRNG_STATE * 32)) % 4294967296")
     set -l range (math "$max - $min + 1")
     math "$min + ($_RKT_PRNG_STATE % $range)"
 end

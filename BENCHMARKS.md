@@ -14,3 +14,11 @@ Measurements: 10 iterations cold (caches cleared before each run) + 10 iteration
 | pwsh  | 2.27       | 1.53        |
 
 Fish is the slowest due to perl subprocess on every PRNG draw (~20-50ms per fork × 5-23 draws per render). pwsh startup is dominated by .NET runtime init.
+
+## Task 1 — Fish PRNG: drop perl subprocess
+
+| Shell | Cold median (before) | Cold median (after) | Warm median (before) | Warm median (after) |
+|-------|---------------------|--------------------|---------------------|--------------------|
+| fish  | 1.35                | 1.30               | 0.98                | 0.94               |
+
+Replaced perl subprocess with fish 4.x `math` built-in using `bitxor`, `floor`, and arithmetic shifts. Each PRNG draw now stays in-process instead of forking perl (~20-50ms per fork eliminated).
