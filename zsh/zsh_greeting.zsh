@@ -903,39 +903,79 @@ show_date_info() {
   printf '.'
 }
 
+_rkt_cols() {
+  tput cols 2>/dev/null || echo 80
+}
+
 show_os_info() {
   emulate -L zsh
+  local cols prefix_len available value
+  cols=$(_rkt_cols)
+  prefix_len=28
+  available=$((cols - prefix_len - 2))
+  value="$_rkt_os"
   _rkt_set_color yellow
   printf '\tOS: '
   _rkt_set_color 0F0
-  printf '%s' "$_rkt_os"
+  if (( $#value > available )); then
+    printf '%s…' "${value[1,$((available - 1))]}"
+  else
+    printf '%s' "$value"
+  fi
   _rkt_set_color normal
 }
 
 show_cpu_info() {
   emulate -L zsh
+  local cols prefix_len available value
+  cols=$(_rkt_cols)
+  prefix_len=29
+  available=$((cols - prefix_len - 2))
+  value="$_rkt_cpu"
   _rkt_set_color yellow
   printf '\tCPU: '
   _rkt_set_color 0F0
-  printf '%s' "$_rkt_cpu"
+  if (( $#value > available )); then
+    printf '%s…' "${value[1,$((available - 1))]}"
+  else
+    printf '%s' "$value"
+  fi
   _rkt_set_color normal
 }
 
 show_mem_info() {
   emulate -L zsh
+  local cols prefix_len available value
+  cols=$(_rkt_cols)
+  prefix_len=32
+  available=$((cols - prefix_len - 2))
+  value="$_rkt_mem"
   _rkt_set_color yellow
   printf '\tMemory: '
   _rkt_set_color 0F0
-  printf '%s' "$_rkt_mem"
+  if (( $#value > available )); then
+    printf '%s…' "${value[1,$((available - 1))]}"
+  else
+    printf '%s' "$value"
+  fi
   _rkt_set_color normal
 }
 
 show_net_info() {
   emulate -L zsh
+  local cols prefix_len available value
+  cols=$(_rkt_cols)
+  prefix_len=29
+  available=$((cols - prefix_len - 2))
+  value="IP Address: $_rkt_ip, Default Gateway: $_rkt_gw"
   _rkt_set_color yellow
   printf '\tNet: '
   _rkt_set_color 0F0
-  printf 'IP Address: %s, Default Gateway: %s' "$_rkt_ip" "$_rkt_gw"
+  if (( $#value > available )); then
+    printf '%s…' "${value[1,$((available - 1))]}"
+  else
+    printf '%s' "$value"
+  fi
   _rkt_set_color normal
 }
 

@@ -978,35 +978,73 @@ function Write-DateInfo {
     [Console]::Write('.')
 }
 
+function Get-TerminalCols {
+    $width = $Host.UI.RawUI.WindowSize.Width
+    if ($width -le 0) { return 80 }
+    return $width
+}
+
 function Write-OSInfo {
+    $cols = Get-TerminalCols
+    $prefixLen = 28
+    $available = $cols - $prefixLen - 2
+    $value = $global:_rkt_os
     Set-RocketColor yellow
     [Console]::Write("`tOS: ")
     Set-RocketColor '0F0'
-    [Console]::Write($global:_rkt_os)
+    if ($value.Length -gt $available) {
+        [Console]::Write($value.Substring(0, $available - 1) + "…")
+    } else {
+        [Console]::Write($value)
+    }
     Set-RocketColor normal
 }
 
 function Write-CpuInfo {
+    $cols = Get-TerminalCols
+    $prefixLen = 29
+    $available = $cols - $prefixLen - 2
+    $value = $global:_rkt_cpu
     Set-RocketColor yellow
     [Console]::Write("`tCPU: ")
     Set-RocketColor '0F0'
-    [Console]::Write($global:_rkt_cpu)
+    if ($value.Length -gt $available) {
+        [Console]::Write($value.Substring(0, $available - 1) + "…")
+    } else {
+        [Console]::Write($value)
+    }
     Set-RocketColor normal
 }
 
 function Write-MemInfo {
+    $cols = Get-TerminalCols
+    $prefixLen = 32
+    $available = $cols - $prefixLen - 2
+    $value = $global:_rkt_mem
     Set-RocketColor yellow
     [Console]::Write("`tMemory: ")
     Set-RocketColor '0F0'
-    [Console]::Write($global:_rkt_mem)
+    if ($value.Length -gt $available) {
+        [Console]::Write($value.Substring(0, $available - 1) + "…")
+    } else {
+        [Console]::Write($value)
+    }
     Set-RocketColor normal
 }
 
 function Write-NetInfo {
+    $cols = Get-TerminalCols
+    $prefixLen = 29
+    $available = $cols - $prefixLen - 2
+    $value = "IP Address: $global:_rkt_ip, Default Gateway: $global:_rkt_gw"
     Set-RocketColor yellow
     [Console]::Write("`tNet: ")
     Set-RocketColor '0F0'
-    [Console]::Write("IP Address: $global:_rkt_ip, Default Gateway: $global:_rkt_gw")
+    if ($value.Length -gt $available) {
+        [Console]::Write($value.Substring(0, $available - 1) + "…")
+    } else {
+        [Console]::Write($value)
+    }
     Set-RocketColor normal
 }
 

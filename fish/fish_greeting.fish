@@ -929,41 +929,77 @@ function show_date_info -d "Prints information about date"
 end
 
 
+function _rkt_cols
+    tput cols 2>/dev/null; or echo 80
+end
+
 function show_os_info -d "Prints operating system info"
+    set -l cols (_rkt_cols)
+    set -l prefix_len 28
+    set -l available (math "$cols - $prefix_len - 2")
+    set -l value $_rkt_os
 
     set_color yellow
     echo -en "\tOS: "
     set_color 0F0
-    echo -en $_rkt_os
+    if test (string length -- "$value") -gt $available
+        echo -en (string sub -l (math "$available - 1") -- "$value")…
+    else
+        echo -en $value
+    end
     set_color normal
 end
 
 
 function show_cpu_info -d "Prints information about cpu"
+    set -l cols (_rkt_cols)
+    set -l prefix_len 29
+    set -l available (math "$cols - $prefix_len - 2")
+    set -l value $_rkt_cpu
 
     set_color yellow
     echo -en "\tCPU: "
     set_color 0F0
-    echo -en $_rkt_cpu
+    if test (string length -- "$value") -gt $available
+        echo -en (string sub -l (math "$available - 1") -- "$value")…
+    else
+        echo -en $value
+    end
     set_color normal
 end
 
 
 function show_mem_info -d "Prints memory information"
+    set -l cols (_rkt_cols)
+    set -l prefix_len 32
+    set -l available (math "$cols - $prefix_len - 2")
+    set -l value $_rkt_mem
 
     set_color yellow
     echo -en "\tMemory: "
     set_color 0F0
-    echo -en $_rkt_mem
+    if test (string length -- "$value") -gt $available
+        echo -en (string sub -l (math "$available - 1") -- "$value")…
+    else
+        echo -en $value
+    end
     set_color normal
 end
 
 
 function show_net_info -d "Prints information about network"
+    set -l cols (_rkt_cols)
+    set -l prefix_len 29
+    set -l available (math "$cols - $prefix_len - 2")
+    set -l value "IP Address: $_rkt_ip, Default Gateway: $_rkt_gw"
 
     set_color yellow
     echo -en "\tNet: "
     set_color 0F0
-    echo -en "IP Address: $_rkt_ip, Default Gateway: $_rkt_gw"
+    if test (string length -- "$value") -gt $available
+        echo -en (string sub -l (math "$available - 1") -- "$value")…
+    else
+        echo -en $value
+    end
     set_color normal
 end

@@ -924,35 +924,75 @@ show_date_info() {
     echo -n "."
 }
 
+_rkt_cols() {
+    tput cols 2>/dev/null || echo 80
+}
+
 show_os_info() {
+    local cols prefix_len available value
+    cols=$(_rkt_cols)
+    prefix_len=28
+    available=$((cols - prefix_len - 2))
+    value="$_rkt_os"
     rkt_set_color yellow
     echo -en "\tOS: "
     rkt_set_color 0F0
-    echo -n "$_rkt_os"
+    if [[ ${#value} -gt $available ]]; then
+        echo -n "${value:0:$((available - 1))}…"
+    else
+        echo -n "$value"
+    fi
     rkt_set_color normal
 }
 
 show_cpu_info() {
+    local cols prefix_len available value
+    cols=$(_rkt_cols)
+    prefix_len=29
+    available=$((cols - prefix_len - 2))
+    value="$_rkt_cpu"
     rkt_set_color yellow
     echo -en "\tCPU: "
     rkt_set_color 0F0
-    echo -n "$_rkt_cpu"
+    if [[ ${#value} -gt $available ]]; then
+        echo -n "${value:0:$((available - 1))}…"
+    else
+        echo -n "$value"
+    fi
     rkt_set_color normal
 }
 
 show_mem_info() {
+    local cols prefix_len available value
+    cols=$(_rkt_cols)
+    prefix_len=32
+    available=$((cols - prefix_len - 2))
+    value="$_rkt_mem"
     rkt_set_color yellow
     echo -en "\tMemory: "
     rkt_set_color 0F0
-    echo -n "$_rkt_mem"
+    if [[ ${#value} -gt $available ]]; then
+        echo -n "${value:0:$((available - 1))}…"
+    else
+        echo -n "$value"
+    fi
     rkt_set_color normal
 }
 
 show_net_info() {
+    local cols prefix_len available value
+    cols=$(_rkt_cols)
+    prefix_len=29
+    available=$((cols - prefix_len - 2))
+    value="IP Address: $_rkt_ip, Default Gateway: $_rkt_gw"
     rkt_set_color yellow
     echo -en "\tNet: "
     rkt_set_color 0F0
-    echo -n "IP Address: $_rkt_ip, Default Gateway: $_rkt_gw"
+    if [[ ${#value} -gt $available ]]; then
+        echo -n "${value:0:$((available - 1))}…"
+    else
+        echo -n "$value"
+    fi
     rkt_set_color normal
 }
 
