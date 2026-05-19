@@ -29,4 +29,12 @@ Replaced perl subprocess with fish 4.x `math` built-in using `bitxor`, `floor`, 
 |-------|---------------------|--------------------|---------------------|--------------------|
 | bash  | 0.70                | 0.75               | 0.32                | 0.33               |
 
-Inlined xorshift32 directly in `rkt_prng_range` instead of calling via `$(rkt_xorshift32 ...)` subshell. Eliminates fork per PRNG draw. Cold-start variance within noise; warm unchanged.
+Inlined xorshift32 directly in `rkt_prng_range` instead of calling via `$(rkt_xorshift32 ...)` subshell. Eliminates fork per PRNG draw.
+
+## Task 3 — Star-color subshell forks (bash)
+
+| Shell | Cold median (before) | Cold median (after) | Warm median (before) | Warm median (after) |
+|-------|---------------------|--------------------|---------------------|--------------------|
+| bash  | 0.70                | 0.72               | 0.32                | 0.31               |
+
+Changed `rkt_star_color_for_mode` to set `_RKT_PRNG_RET` global instead of `echo`. Updated caller in `rkt_render_row` to read global directly instead of `$(...)` subshell. Benefit amplifies under neon mode (18 stars × PRNG draws).

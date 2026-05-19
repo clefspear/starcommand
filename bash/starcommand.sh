@@ -230,25 +230,23 @@ rkt_star_color_for_mode() {
     case $_RKT_STAR_MODE in
         gold)
             if [[ $_RKT_TERMINAL_THEME == light ]]; then
-                echo B8860B
+                _RKT_PRNG_RET=B8860B
             else
-                echo FFE600
+                _RKT_PRNG_RET=FFE600
             fi
             ;;
         neon)
             if [[ $_RKT_TERMINAL_THEME == light ]]; then
                 _rkt_neon_color_light
-                echo "$_RKT_PRNG_RET"
             else
                 _rkt_neon_color
-                echo "$_RKT_PRNG_RET"
             fi
             ;;
         *)
             if [[ $_RKT_TERMINAL_THEME == light ]]; then
-                echo 333333
+                _RKT_PRNG_RET=333333
             else
-                echo FFFFFF
+                _RKT_PRNG_RET=FFFFFF
             fi
             ;;
     esac
@@ -275,7 +273,8 @@ rkt_render_row() {
             echo -n "$char"
             rkt_set_color normal
         elif rkt_is_star "$key"; then
-            rkt_set_color "$(rkt_star_color_for_mode)"
+            rkt_star_color_for_mode
+            rkt_set_color "$_RKT_PRNG_RET"
             echo -n '*'
             rkt_set_color normal
         else
