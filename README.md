@@ -8,18 +8,9 @@ starcommand launches a different rocket every time you open a shell — a bash, 
 
 -----
 
-<table>
-<tr>
-<td>
-
 ## How many rockets are possible?
 
 A lot.
-
-</td>
-<td><img src="docs/narrow.png" width="350"></td>
-</tr>
-</table>
 
 - **~2 × 10⁴³ unique rockets possible** — every palette deterministically reproducible from its six hex codes
 - **148 candidate star cells** around the rocket
@@ -27,6 +18,8 @@ A lot.
 - **8 flame patterns**, mapped from the first palette byte
 - **28-color neon mode** that re-rolls every star color independently
 - **6 color roles** (porthole, window, body, top, window-sides, flame), each drawn from a full 24-bit color space
+
+![](docs/narrow.png)
 
 Every shell you open rolls a fresh palette from a high-entropy seed, so two identical rockets appearing twice in a lifetime is statistically impossible. Every tab is — visually — the first time anyone has ever seen that exact rocket.
 
