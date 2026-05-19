@@ -34,7 +34,9 @@ rkt_prng_seed() {
 
 rkt_prng_range() {
     local min=$1 max=$2 range
-    _RKT_PRNG_STATE=$(rkt_xorshift32 "$_RKT_PRNG_STATE")
+    _RKT_PRNG_STATE=$(( ( (_RKT_PRNG_STATE ^ (_RKT_PRNG_STATE << 13)) & 0xFFFFFFFF ) ))
+    _RKT_PRNG_STATE=$(( ( (_RKT_PRNG_STATE ^ (_RKT_PRNG_STATE >> 17)) & 0xFFFFFFFF ) ))
+    _RKT_PRNG_STATE=$(( ( (_RKT_PRNG_STATE ^ (_RKT_PRNG_STATE << 5)) & 0xFFFFFFFF ) ))
     range=$((max - min + 1))
     _RKT_PRNG_RET=$((min + (_RKT_PRNG_STATE % range)))
 }

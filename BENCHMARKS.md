@@ -22,3 +22,11 @@ Fish is the slowest due to perl subprocess on every PRNG draw (~20-50ms per fork
 | fish  | 1.35                | 1.30               | 0.98                | 0.94               |
 
 Replaced perl subprocess with fish 4.x `math` built-in using `bitxor`, `floor`, and arithmetic shifts. Each PRNG draw now stays in-process instead of forking perl (~20-50ms per fork eliminated).
+
+## Task 2 — Bash PRNG: inline like zsh
+
+| Shell | Cold median (before) | Cold median (after) | Warm median (before) | Warm median (after) |
+|-------|---------------------|--------------------|---------------------|--------------------|
+| bash  | 0.70                | 0.75               | 0.32                | 0.33               |
+
+Inlined xorshift32 directly in `rkt_prng_range` instead of calling via `$(rkt_xorshift32 ...)` subshell. Eliminates fork per PRNG draw. Cold-start variance within noise; warm unchanged.
