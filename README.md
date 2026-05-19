@@ -19,7 +19,7 @@ A lot.
 - **28-color neon mode** that re-rolls every star color independently
 - **6 color roles** (porthole, window, body, top, window-sides, flame), each drawn from a full 24-bit color space
 
-![](docs/narrow.png)
+<p align="center"><img src="docs/narrow.png"></p>
 
 Every shell you open rolls a fresh palette from a high-entropy seed, so two identical rockets appearing twice in a lifetime is statistically impossible. Every tab is — visually — the first time anyone has ever seen that exact rocket.
 
