@@ -17,6 +17,14 @@ typeset -g _rkt_bdy="${colors[3]}"
 typeset -g _rkt_top="${colors[4]}"
 typeset -g _rkt_sds="${colors[5]}"
 typeset -g _rkt_flm="${colors[6]}"
+typeset -g -a _RKT_PALETTE_BYTES=(
+    $((16#${_rkt_tip:0:2})) $((16#${_rkt_tip:2:2})) $((16#${_rkt_tip:4:2}))
+    $((16#${_rkt_win:0:2})) $((16#${_rkt_win:2:2})) $((16#${_rkt_win:4:2}))
+    $((16#${_rkt_bdy:0:2})) $((16#${_rkt_bdy:2:2})) $((16#${_rkt_bdy:4:2}))
+    $((16#${_rkt_top:0:2})) $((16#${_rkt_top:2:2})) $((16#${_rkt_top:4:2}))
+    $((16#${_rkt_sds:0:2})) $((16#${_rkt_sds:2:2})) $((16#${_rkt_sds:4:2}))
+    $((16#${_rkt_flm:0:2})) $((16#${_rkt_flm:2:2})) $((16#${_rkt_flm:4:2}))
+)
 typeset -g -a _rocket_stars=("${(@f)$(_compute_star_positions)}")
 
 _render_row 0 "                  " "                  "; echo ''

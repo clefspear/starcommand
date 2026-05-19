@@ -231,10 +231,9 @@ function _compute_star_positions --description "Derive star positions from the p
     end
 
     set --local total (count $_RKT_STAR_CANDIDATES)
-    set --local all_bytes (_rocket_palette_bytes)
 
     set --local seen
-    for b in $all_bytes
+    for b in $_RKT_PALETTE_BYTES
         set --local i1 (math "$b % $total")
         set --local i2 (math "($b + 73) % $total")
         for idx in $i1 $i2
@@ -311,8 +310,7 @@ end
 function _render_flame --description "4-char flame below the rocket base, palette-deterministic pattern"
     set --local patterns '\\| ||' '|| |/' '\\| |/' '|| ||' '*| |*' '~| ||' '|| |~' '\\| /|'
     set --local n_patterns (count $patterns)
-    set --local all_bytes (_rocket_palette_bytes)
-    set --local idx (math "$all_bytes[1] % $n_patterns")
+    set --local idx (math "$_RKT_PALETTE_BYTES[1] % $n_patterns")
     set --local pattern $patterns[(math "$idx + 1")]
 
     echo -n "      "
@@ -837,6 +835,25 @@ function fish_greeting -d "Greeting message on shell session start up"
     set --global _rkt_top $colors[4]
     set --global _rkt_sds $colors[5]
     set --global _rkt_flm $colors[6]
+    set --global _RKT_PALETTE_BYTES \
+        (math --scale=0 "0x"(string sub --start 1 --length 2 -- $_rkt_tip)) \
+        (math --scale=0 "0x"(string sub --start 3 --length 2 -- $_rkt_tip)) \
+        (math --scale=0 "0x"(string sub --start 5 --length 2 -- $_rkt_tip)) \
+        (math --scale=0 "0x"(string sub --start 1 --length 2 -- $_rkt_win)) \
+        (math --scale=0 "0x"(string sub --start 3 --length 2 -- $_rkt_win)) \
+        (math --scale=0 "0x"(string sub --start 5 --length 2 -- $_rkt_win)) \
+        (math --scale=0 "0x"(string sub --start 1 --length 2 -- $_rkt_bdy)) \
+        (math --scale=0 "0x"(string sub --start 3 --length 2 -- $_rkt_bdy)) \
+        (math --scale=0 "0x"(string sub --start 5 --length 2 -- $_rkt_bdy)) \
+        (math --scale=0 "0x"(string sub --start 1 --length 2 -- $_rkt_top)) \
+        (math --scale=0 "0x"(string sub --start 3 --length 2 -- $_rkt_top)) \
+        (math --scale=0 "0x"(string sub --start 5 --length 2 -- $_rkt_top)) \
+        (math --scale=0 "0x"(string sub --start 1 --length 2 -- $_rkt_sds)) \
+        (math --scale=0 "0x"(string sub --start 3 --length 2 -- $_rkt_sds)) \
+        (math --scale=0 "0x"(string sub --start 5 --length 2 -- $_rkt_sds)) \
+        (math --scale=0 "0x"(string sub --start 1 --length 2 -- $_rkt_flm)) \
+        (math --scale=0 "0x"(string sub --start 3 --length 2 -- $_rkt_flm)) \
+        (math --scale=0 "0x"(string sub --start 5 --length 2 -- $_rkt_flm))
     set --global _rocket_stars (_compute_star_positions)
 
     if _palette_is_favorite

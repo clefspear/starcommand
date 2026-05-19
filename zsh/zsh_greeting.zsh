@@ -288,10 +288,9 @@ _compute_star_positions() {
     )
   fi
   local total=${#_RKT_STAR_CANDIDATES}
-  local -a all_bytes=($(_rocket_palette_bytes))
   local -a seen=()
   local b i1 i2 idx pos
-  for b in "${all_bytes[@]}"; do
+  for b in "${_RKT_PALETTE_BYTES[@]}"; do
     i1=$(( b % total ))
     i2=$(( (b + 73) % total ))
     for idx in $i1 $i2; do
@@ -365,8 +364,7 @@ _render_flame() {
   emulate -L zsh
   local -a patterns=('\| ||' '|| |/' '\| |/' '|| ||' '*| |*' '~| ||' '|| |~' '\| /|')
   local n_patterns=${#patterns}
-  local -a all_bytes=($(_rocket_palette_bytes))
-  local idx=$(( all_bytes[1] % n_patterns ))
+  local idx=$(( _RKT_PALETTE_BYTES[1] % n_patterns ))
   local pattern="${patterns[$((idx + 1))]}"
   printf '      '
   _rkt_set_color "$_rkt_flm"
@@ -838,6 +836,14 @@ _rkt_greeting() {
   typeset -g _rkt_top="${colors[4]}"
   typeset -g _rkt_sds="${colors[5]}"
   typeset -g _rkt_flm="${colors[6]}"
+  typeset -g -a _RKT_PALETTE_BYTES=(
+    $((16#${_rkt_tip:0:2})) $((16#${_rkt_tip:2:2})) $((16#${_rkt_tip:4:2}))
+    $((16#${_rkt_win:0:2})) $((16#${_rkt_win:2:2})) $((16#${_rkt_win:4:2}))
+    $((16#${_rkt_bdy:0:2})) $((16#${_rkt_bdy:2:2})) $((16#${_rkt_bdy:4:2}))
+    $((16#${_rkt_top:0:2})) $((16#${_rkt_top:2:2})) $((16#${_rkt_top:4:2}))
+    $((16#${_rkt_sds:0:2})) $((16#${_rkt_sds:2:2})) $((16#${_rkt_sds:4:2}))
+    $((16#${_rkt_flm:0:2})) $((16#${_rkt_flm:2:2})) $((16#${_rkt_flm:4:2}))
+  )
   typeset -g -a _rocket_stars=("${(@f)$(_compute_star_positions)}")
   if _palette_is_favorite; then
     typeset -g _rkt_star_mode="$_rkt_favorite_star_mode"

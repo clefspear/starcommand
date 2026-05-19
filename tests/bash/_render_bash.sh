@@ -13,6 +13,14 @@ _RKT_SDS=$5
 _RKT_FLM=$6
 _RKT_STAR_MODE=white
 _RKT_TERMINAL_THEME=dark
+_RKT_PALETTE_BYTES=(
+    $((16#${_RKT_TIP:0:2})) $((16#${_RKT_TIP:2:2})) $((16#${_RKT_TIP:4:2}))
+    $((16#${_RKT_WIN:0:2})) $((16#${_RKT_WIN:2:2})) $((16#${_RKT_WIN:4:2}))
+    $((16#${_RKT_BDY:0:2})) $((16#${_RKT_BDY:2:2})) $((16#${_RKT_BDY:4:2}))
+    $((16#${_RKT_TOP:0:2})) $((16#${_RKT_TOP:2:2})) $((16#${_RKT_TOP:4:2}))
+    $((16#${_RKT_SDS:0:2})) $((16#${_RKT_SDS:2:2})) $((16#${_RKT_SDS:4:2}))
+    $((16#${_RKT_FLM:0:2})) $((16#${_RKT_FLM:2:2})) $((16#${_RKT_FLM:4:2}))
+)
 _ROCKET_STARS=($(rkt_compute_star_positions))
 
 rkt_render_row 0 "                  " "                  "

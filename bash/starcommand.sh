@@ -120,6 +120,7 @@ _RKT_SDS=
 _RKT_FLM=
 _RKT_STAR_MODE=white
 _RKT_TERMINAL_THEME=dark
+_RKT_PALETTE_BYTES=()
 
 # ── Rocket art ─────────────────────────────────────────────────────────────────
 
@@ -194,9 +195,8 @@ rkt_palette_bytes() {
 
 rkt_compute_star_positions() {
     local total=${#_RKT_STAR_CANDIDATES[@]}
-    local all_bytes=($(rkt_palette_bytes))
     local b i1 i2
-    for b in "${all_bytes[@]}"; do
+    for b in "${_RKT_PALETTE_BYTES[@]}"; do
         i1=$((b % total))
         i2=$(((b + 73) % total))
         echo "${_RKT_STAR_CANDIDATES[$i1]}"
@@ -284,9 +284,8 @@ rkt_render_row() {
 }
 
 rkt_render_flame() {
-    local all_bytes idx pattern
-    all_bytes=($(rkt_palette_bytes))
-    idx=$((all_bytes[0] % ${#FLAME_PATTERNS[@]}))
+    local idx pattern
+    idx=$((_RKT_PALETTE_BYTES[0] % ${#FLAME_PATTERNS[@]}))
     pattern=${FLAME_PATTERNS[$idx]}
     echo -n '      '
     rkt_set_color "$_RKT_FLM"
@@ -974,6 +973,15 @@ rkt_starcommand() {
     _RKT_TOP=${colors[3]}
     _RKT_SDS=${colors[4]}
     _RKT_FLM=${colors[5]}
+
+    _RKT_PALETTE_BYTES=(
+        $((16#${_RKT_TIP:0:2})) $((16#${_RKT_TIP:2:2})) $((16#${_RKT_TIP:4:2}))
+        $((16#${_RKT_WIN:0:2})) $((16#${_RKT_WIN:2:2})) $((16#${_RKT_WIN:4:2}))
+        $((16#${_RKT_BDY:0:2})) $((16#${_RKT_BDY:2:2})) $((16#${_RKT_BDY:4:2}))
+        $((16#${_RKT_TOP:0:2})) $((16#${_RKT_TOP:2:2})) $((16#${_RKT_TOP:4:2}))
+        $((16#${_RKT_SDS:0:2})) $((16#${_RKT_SDS:2:2})) $((16#${_RKT_SDS:4:2}))
+        $((16#${_RKT_FLM:0:2})) $((16#${_RKT_FLM:2:2})) $((16#${_RKT_FLM:4:2}))
+    )
 
     _ROCKET_STARS=($(rkt_compute_star_positions))
 

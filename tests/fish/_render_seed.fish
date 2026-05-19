@@ -16,6 +16,25 @@ set -g _rkt_bdy $colors[3]
 set -g _rkt_top $colors[4]
 set -g _rkt_sds $colors[5]
 set -g _rkt_flm $colors[6]
+set -g _RKT_PALETTE_BYTES \
+    (math --scale=0 "0x"(string sub --start 1 --length 2 -- $_rkt_tip)) \
+    (math --scale=0 "0x"(string sub --start 3 --length 2 -- $_rkt_tip)) \
+    (math --scale=0 "0x"(string sub --start 5 --length 2 -- $_rkt_tip)) \
+    (math --scale=0 "0x"(string sub --start 1 --length 2 -- $_rkt_win)) \
+    (math --scale=0 "0x"(string sub --start 3 --length 2 -- $_rkt_win)) \
+    (math --scale=0 "0x"(string sub --start 5 --length 2 -- $_rkt_win)) \
+    (math --scale=0 "0x"(string sub --start 1 --length 2 -- $_rkt_bdy)) \
+    (math --scale=0 "0x"(string sub --start 3 --length 2 -- $_rkt_bdy)) \
+    (math --scale=0 "0x"(string sub --start 5 --length 2 -- $_rkt_bdy)) \
+    (math --scale=0 "0x"(string sub --start 1 --length 2 -- $_rkt_top)) \
+    (math --scale=0 "0x"(string sub --start 3 --length 2 -- $_rkt_top)) \
+    (math --scale=0 "0x"(string sub --start 5 --length 2 -- $_rkt_top)) \
+    (math --scale=0 "0x"(string sub --start 1 --length 2 -- $_rkt_sds)) \
+    (math --scale=0 "0x"(string sub --start 3 --length 2 -- $_rkt_sds)) \
+    (math --scale=0 "0x"(string sub --start 5 --length 2 -- $_rkt_sds)) \
+    (math --scale=0 "0x"(string sub --start 1 --length 2 -- $_rkt_flm)) \
+    (math --scale=0 "0x"(string sub --start 3 --length 2 -- $_rkt_flm)) \
+    (math --scale=0 "0x"(string sub --start 5 --length 2 -- $_rkt_flm))
 set -g _rocket_stars (_compute_star_positions)
 
 _render_row 0 "                  " "                  "; echo ""

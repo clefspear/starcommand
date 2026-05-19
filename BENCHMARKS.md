@@ -47,3 +47,13 @@ Changed `rkt_star_color_for_mode` to set `_RKT_PRNG_RET` global instead of `echo
 | zsh   | 0.71                | 0.71               | 0.28                | 0.19               |
 
 Batched 6 HSL→hex conversions into a single awk invocation in both `rkt_gen_rocket_palette` (bash) and `_gen_rocket_palette` (zsh). Eliminates 5 awk forks per palette generation (~30-60ms total).
+
+## Task 5 — Cache palette bytes once per render
+
+| Shell | Cold median (before) | Cold median (after) | Warm median (before) | Warm median (after) |
+|-------|---------------------|--------------------|---------------------|--------------------|
+| bash  | 0.61                | 0.58               | 0.23                | 0.22               |
+| zsh   | 0.71                | 0.68               | 0.19                | 0.18               |
+| fish  | 1.30                | 1.28               | 0.94                | 0.92               |
+
+Populated global `_RKT_PALETTE_BYTES` once per render after palette assignment. `_compute_star_positions` and `_render_flame` read the global instead of recomputing via `$(rkt_palette_bytes)` (bash/zsh) or `(_rocket_palette_bytes)` (fish). Eliminates duplicate 18× hex→int conversion per render.
