@@ -139,9 +139,11 @@ The `-fSL` flags on curl matter: `-f` makes curl fail on HTTP errors instead of 
 
 ## Color modes
 
-**Gold (default for favorites)** — when a saved favorite rolls up, the star field renders in bright Mario-star yellow. Instant "oh, that one's mine" recognition.
+**Gold (default for favorites)** — when a saved favorite rolls up, the star field renders in bright Mario-star yellow.
 
 <!-- ![gold](docs/gold.png) -->
+
+**White** — every star renders in plain terminal white. Clean, minimal, no frills.
 
 **Neon** — every star independently rolls from a 28-color palette spanning the full hue wheel at 15° increments. Maximum chromatic chaos.
 
