@@ -97,7 +97,9 @@ Requires bash ≥ 3.2 (macOS default), zsh ≥ 5.0, PowerShell ≥ 5.1, or fish 
 curl -fsSL https://raw.githubusercontent.com/clefspear/starcommand/main/bash/install.sh | bash
 ```
 
-Open a new tab. Done. On macOS, the installer writes to both `~/.bashrc` and `~/.bash_profile` so login shells pick it up.
+Open a new tab. Done.
+
+> \* macOS note: the installer writes to both `~/.bashrc` and `~/.bash_profile` so login shells pick it up.
 
 **zsh:**
 
