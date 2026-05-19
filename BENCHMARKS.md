@@ -57,3 +57,11 @@ Batched 6 HSL→hex conversions into a single awk invocation in both `rkt_gen_ro
 | fish  | 1.30                | 1.28               | 0.94                | 0.92               |
 
 Populated global `_RKT_PALETTE_BYTES` once per render after palette assignment. `_compute_star_positions` and `_render_flame` read the global instead of recomputing via `$(rkt_palette_bytes)` (bash/zsh) or `(_rocket_palette_bytes)` (fish). Eliminates duplicate 18× hex→int conversion per render.
+
+## Task 6 — Bash star-position dedup: drop sort subprocess
+
+| Shell | Cold median (before) | Cold median (after) | Warm median (before) | Warm median (after) |
+|-------|---------------------|--------------------|---------------------|--------------------|
+| bash  | 0.58                | 0.56               | 0.22                | 0.21               |
+
+Replaced `sort -u` subprocess with pure-bash sentinel string (`::` delimited) for deduplicating star positions. Eliminates `sort` fork per render. Parity verified — same set of positions produces byte-identical output.

@@ -195,13 +195,16 @@ rkt_palette_bytes() {
 
 rkt_compute_star_positions() {
     local total=${#_RKT_STAR_CANDIDATES[@]}
-    local b i1 i2
+    local b i1 i2 cand seen="::"
     for b in "${_RKT_PALETTE_BYTES[@]}"; do
         i1=$((b % total))
         i2=$(((b + 73) % total))
-        echo "${_RKT_STAR_CANDIDATES[$i1]}"
-        echo "${_RKT_STAR_CANDIDATES[$i2]}"
-    done | sort -u -t: -k1,1n -k2,2n
+        for cand in "${_RKT_STAR_CANDIDATES[$i1]}" "${_RKT_STAR_CANDIDATES[$i2]}"; do
+            [[ $seen == *"::$cand::"* ]] && continue
+            seen+="$cand::"
+            echo "$cand"
+        done
+    done
 }
 
 rkt_is_star() {
