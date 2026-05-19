@@ -933,11 +933,19 @@ function star {
 # ── Greeting helpers ───────────────────────────────────────────────────────────
 
 function Write-WelcomeMessage {
-    [Console]::Write('Welcome Aboard, ')
-    Set-RocketColor $global:_rkt_bdy
-    [Console]::Write('Captain ')
-    Set-RocketColor 'FFF'
-    [Console]::Write((whoami))
+    $cols = Get-TerminalCols
+    $prefixLen = 19
+    $available = $cols - $prefixLen - 2
+    $value = "Welcome Aboard, Captain $(whoami)!"
+    if ($value.Length -gt $available) {
+        [Console]::Write($value.Substring(0, $available - 1) + "…")
+    } else {
+        [Console]::Write('Welcome Aboard, ')
+        Set-RocketColor $global:_rkt_bdy
+        [Console]::Write('Captain ')
+        Set-RocketColor 'FFF'
+        [Console]::Write((whoami))
+    }
     Set-RocketColor normal
 }
 
@@ -966,16 +974,25 @@ function Get-PortableUptime {
 }
 
 function Write-DateInfo {
+    $cols = Get-TerminalCols
+    $prefixLen = 19
+    $available = $cols - $prefixLen - 2
     $up_time = Get-PortableUptime
-    [Console]::Write('Today is ')
-    Set-RocketColor cyan
-    [Console]::Write((Get-Date -Format 'yyyy.MM.dd'))
+    $value = "Today is $(Get-Date -Format 'yyyy.MM.dd'), we are up and running for $up_time."
+    if ($value.Length -gt $available) {
+        [Console]::Write($value.Substring(0, $available - 1) + "…")
+    } else {
+        [Console]::Write('Today is ')
+        Set-RocketColor cyan
+        [Console]::Write((Get-Date -Format 'yyyy.MM.dd'))
+        Set-RocketColor normal
+        [Console]::Write(', we are up and running for ')
+        Set-RocketColor cyan
+        [Console]::Write($up_time)
+        Set-RocketColor normal
+        [Console]::Write('.')
+    }
     Set-RocketColor normal
-    [Console]::Write(', we are up and running for ')
-    Set-RocketColor cyan
-    [Console]::Write($up_time)
-    Set-RocketColor normal
-    [Console]::Write('.')
 }
 
 function Get-TerminalCols {

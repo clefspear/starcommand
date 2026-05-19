@@ -903,29 +903,45 @@ end
 
 
 function welcome_message -d "Say welcome to user"
+    set -l cols (_rkt_cols)
+    set -l prefix_len 19
+    set -l available (math "$cols - $prefix_len - 2")
+    set -l value "Welcome Aboard, Captain "(whoami)"!"
 
-    echo -en "Welcome Aboard, "
-    set_color $_rkt_bdy
-    echo -en "Captain "
-    set_color FFF
-    echo -en (whoami) "!"
+    if test (string length -- "$value") -gt $available
+        echo -en (string sub -l (math "$available - 1") -- "$value")…
+    else
+        echo -en "Welcome Aboard, "
+        set_color $_rkt_bdy
+        echo -en "Captain "
+        set_color FFF
+        echo -en (whoami) "!"
+    end
     set_color normal
 end
 
 
 function show_date_info -d "Prints information about date"
-
+    set -l cols (_rkt_cols)
+    set -l prefix_len 19
+    set -l available (math "$cols - $prefix_len - 2")
     set --local up_time (uptime | awk -F '(up |,)' '{print $2}' | sed 's/^ *//g')
+    set -l value "Today is "(date +%Y.%m.%d)", we are up and running for $up_time."
 
-    echo -en "Today is "
-    set_color cyan
-    echo -en (date +%Y.%m.%d)
+    if test (string length -- "$value") -gt $available
+        echo -en (string sub -l (math "$available - 1") -- "$value")…
+    else
+        echo -en "Today is "
+        set_color cyan
+        echo -en (date +%Y.%m.%d)
+        set_color normal
+        echo -en ", we are up and running for "
+        set_color cyan
+        echo -en "$up_time"
+        set_color normal
+        echo -en "."
+    end
     set_color normal
-    echo -en ", we are up and running for "
-    set_color cyan
-    echo -en "$up_time"
-    set_color normal
-    echo -en "."
 end
 
 

@@ -903,25 +903,44 @@ star() {
 # ── Greeting helpers ───────────────────────────────────────────────────────────
 
 welcome_message() {
-    echo -n "Welcome Aboard, "
-    rkt_set_color "$_RKT_BDY"
-    echo -n "Captain "
-    rkt_set_color FFF
-    echo -n "$(whoami)!"
+    local cols prefix_len available value
+    cols=$(_rkt_cols)
+    prefix_len=19
+    available=$((cols - prefix_len - 2))
+    value="Welcome Aboard, Captain $(whoami)!"
+    if [[ ${#value} -gt $available ]]; then
+        echo -n "${value:0:$((available - 1))}…"
+    else
+        echo -n "Welcome Aboard, "
+        rkt_set_color "$_RKT_BDY"
+        echo -n "Captain "
+        rkt_set_color FFF
+        echo -n "$(whoami)!"
+    fi
     rkt_set_color normal
 }
 
 show_date_info() {
-    local up_time=$(uptime | awk -F '(up |,)' '{print $2}' | sed 's/^ *//g')
-    echo -n "Today is "
-    rkt_set_color cyan
-    echo -n "$(date +%Y.%m.%d)"
+    local cols prefix_len available value up_time
+    cols=$(_rkt_cols)
+    prefix_len=19
+    available=$((cols - prefix_len - 2))
+    up_time=$(uptime | awk -F '(up |,)' '{print $2}' | sed 's/^ *//g')
+    value="Today is $(date +%Y.%m.%d), we are up and running for $up_time."
+    if [[ ${#value} -gt $available ]]; then
+        echo -n "${value:0:$((available - 1))}…"
+    else
+        echo -n "Today is "
+        rkt_set_color cyan
+        echo -n "$(date +%Y.%m.%d)"
+        rkt_set_color normal
+        echo -n ", we are up and running for "
+        rkt_set_color cyan
+        echo -n "$up_time"
+        rkt_set_color normal
+        echo -n "."
+    fi
     rkt_set_color normal
-    echo -n ", we are up and running for "
-    rkt_set_color cyan
-    echo -n "$up_time"
-    rkt_set_color normal
-    echo -n "."
 }
 
 _rkt_cols() {

@@ -881,26 +881,45 @@ _rkt_greeting() {
 
 welcome_message() {
   emulate -L zsh
-  printf 'Welcome Aboard, '
-  _rkt_set_color "$_rkt_bdy"
-  printf 'Captain '
-  _rkt_set_color FFF
-  printf '%s!' "$(whoami)"
+  local cols prefix_len available value
+  cols=$(_rkt_cols)
+  prefix_len=19
+  available=$((cols - prefix_len - 2))
+  value="Welcome Aboard, Captain $(whoami)!"
+  if (( $#value > available )); then
+    printf '%s…' "${value[1,$((available - 1))]}"
+  else
+    printf 'Welcome Aboard, '
+    _rkt_set_color "$_rkt_bdy"
+    printf 'Captain '
+    _rkt_set_color FFF
+    printf '%s!' "$(whoami)"
+  fi
   _rkt_set_color normal
 }
 
 show_date_info() {
   emulate -L zsh
-  local up_time=$(uptime | awk -F '(up |,)' '{print $2}' | sed 's/^ *//g')
-  printf 'Today is '
-  _rkt_set_color cyan
-  printf '%s' "$(date +%Y.%m.%d)"
+  local cols prefix_len available value up_time
+  cols=$(_rkt_cols)
+  prefix_len=19
+  available=$((cols - prefix_len - 2))
+  up_time=$(uptime | awk -F '(up |,)' '{print $2}' | sed 's/^ *//g')
+  value="Today is $(date +%Y.%m.%d), we are up and running for $up_time."
+  if (( $#value > available )); then
+    printf '%s…' "${value[1,$((available - 1))]}"
+  else
+    printf 'Today is '
+    _rkt_set_color cyan
+    printf '%s' "$(date +%Y.%m.%d)"
+    _rkt_set_color normal
+    printf ', we are up and running for '
+    _rkt_set_color cyan
+    printf '%s' "$up_time"
+    _rkt_set_color normal
+    printf '.'
+  fi
   _rkt_set_color normal
-  printf ', we are up and running for '
-  _rkt_set_color cyan
-  printf '%s' "$up_time"
-  _rkt_set_color normal
-  printf '.'
 }
 
 _rkt_cols() {
