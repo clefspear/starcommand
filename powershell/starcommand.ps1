@@ -16,19 +16,6 @@ function Invoke-XorShift32 {
     return [uint32]$s
 }
 
-function Invoke-Djb2 {
-    param([string]$InputString)
-    $U32 = [uint64]4294967295
-    $h = [uint64]5381
-    foreach ($c in $InputString.ToCharArray()) {
-        $b = [uint64][byte][char]$c
-        $h = (($h -shl 5) + $h + $b) -band $U32
-    }
-    $h32 = [uint32]$h
-    if ($h32 -eq 0) { $h32 = 1 }
-    return $h32
-}
-
 function Set-PrngSeed {
     do {
         $script:_RKT_PRNG_STATE = [uint32](Get-Random -Maximum ([uint32]::MaxValue))
@@ -1109,7 +1096,7 @@ function Invoke-Starcommand {
 
 # Export functions for testing
 $exported = @(
-    'Invoke-XorShift32', 'Invoke-Djb2', 'Get-RandomInt',
+    'Invoke-XorShift32',
     'Set-RocketColor', 'Convert-HslToHex', 'Invoke-RenderRow', 'Invoke-RenderFlame',
     'Invoke-PaletteBytes', 'Invoke-ComputeStarPositions', 'Invoke-GenRocketPalette',
     'Invoke-Starcommand', 'Get-StarColorForMode', 'Get-PrngRange', 'Set-PrngSeed',

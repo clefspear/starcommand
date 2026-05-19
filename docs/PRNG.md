@@ -34,33 +34,18 @@ Starting from seed `42`, after each call the function returns the new state. The
 
 ## Seeding scheme
 
-The PRNG is seeded once per shell session. The seed is derived from hostname and date to produce a deterministic rocket that stays stable throughout a single day on a single machine but changes across days and machines.
+The PRNG is seeded once per shell session from `/dev/urandom` (or `Get-Random` in PowerShell). Each shell implements `rkt_prng_seed` / `Set-PrngSeed` which loops until a non-zero 32-bit value is obtained:
 
 ```
-seed_str = hostname + "." + date
+rkt_prng_seed():
+  loop:
+    s = 4 bytes from /dev/urandom (as uint32)
+    if s != 0:
+      _RKT_PRNG_STATE = s
+      break
 ```
 
-Where:
-- `hostname` = output of `hostname -s` (short hostname, no domain)
-- `date` = output of `date +%Y.%m.%d`
-
-The string is hashed with DJB2 to produce the 32-bit seed:
-
-```
-djb2(s):
-  hash = 5381
-  for each byte c in s (as unsigned char):
-    hash = ((hash << 5) + hash + c) & 0xFFFFFFFF
-  return hash
-```
-
-If `hash` == 0, set `hash = 1` (xorshift32 cannot produce entropy from state 0).
-
-### Why DJB2
-
-- Extremely simple, uses only shift, add, and XOR — implementable in all four shells.
-- Well-distributed for short string inputs.
-- Deterministic: same string always produces the same hash.
+A zero seed is rejected because xorshift32 produces only zeros from state 0. This is the only seeding correctness requirement.
 
 ## Range derivation
 
@@ -79,10 +64,8 @@ Not needed for starcommand — all rocket parameters are integer ranges.
 ## PRNG lifecycle per shell session
 
 1. Session starts.
-2. Seed is computed from hostname + date via DJB2.
-3. PRNG state is initialized to the seed.
-4. Each call to `next()` advances the state and returns the new 32-bit value.
-5. The `random_int(min, max)` helper wraps `next()` with the modulo formula above.
+2. `rkt_prng_seed()` reads 4 bytes from `/dev/urandom` (or `Get-Random` in PowerShell) and sets `_RKT_PRNG_STATE`.
+3. Each call to `rkt_prng_range()` / `Get-PrngRange` advances the state via xorshift32 and returns `min + (state % (max - min + 1))`.
 
 ## Consumption order
 

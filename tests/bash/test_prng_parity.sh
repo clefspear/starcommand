@@ -54,16 +54,6 @@ if [[ $current_seed -ne 0 && ${#expected_vals[@]} -eq 20 ]]; then
     if $ok; then echo "PASS"; fi
 fi
 
-# Test DJB2
-printf "Testing DJB2 hash... "
-djb_result=$(rkt_djb2 "myhost.2026.05.18")
-if [[ $djb_result -eq 125233131 ]]; then
-    echo "PASS (got $djb_result)"
-else
-    echo "FAIL: got $djb_result, expected 125233131"
-    all_passed=false
-fi
-
 if $all_passed; then
     echo ""
     echo "All PRNG parity tests PASSED"

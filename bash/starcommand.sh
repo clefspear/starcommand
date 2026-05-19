@@ -15,16 +15,6 @@ rkt_xorshift32() {
     echo $s
 }
 
-rkt_djb2() {
-    local str=$1 h=5381 i c
-    for ((i=0; i<${#str}; i++)); do
-        printf -v c '%d' "'${str:$i:1}"
-        h=$(( ((h << 5) + h + c) & 0xFFFFFFFF ))
-    done
-    (( h == 0 )) && h=1
-    echo $h
-}
-
 rkt_prng_seed() {
     while :; do
         _RKT_PRNG_STATE=$(od -An -N4 -tu4 /dev/urandom | tr -d ' ')

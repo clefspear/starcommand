@@ -54,16 +54,6 @@ while ($i -lt $lines.Count) {
     }
 }
 
-# Also test DJB2
-Write-Host "Testing DJB2 hash..."
-$djbResult = Invoke-Djb2 "myhost.2026.05.18"
-if ($djbResult -eq 125233131) {
-    Write-Host "  PASS (got $djbResult)" -ForegroundColor Green
-} else {
-    Write-Host "  FAIL: got $djbResult, expected 125233131" -ForegroundColor Red
-    $allPassed = $false
-}
-
 if ($allPassed) {
     Write-Host "`nAll PRNG parity tests PASSED" -ForegroundColor Green
     exit 0

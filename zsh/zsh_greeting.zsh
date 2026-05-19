@@ -21,17 +21,6 @@ _rkt_xorshift32() {
   echo $s
 }
 
-_rkt_djb2() {
-  emulate -L zsh
-  local str=$1 h=5381 i c
-  for ((i=1; i<=${#str}; i++)); do
-    printf -v c '%d' "'${str[$i]}"
-    h=$(( (h * 33 + c) & 0xFFFFFFFF ))
-  done
-  (( h == 0 )) && h=1
-  echo $h
-}
-
 _rkt_prng_seed() {
   emulate -L zsh
   while true; do

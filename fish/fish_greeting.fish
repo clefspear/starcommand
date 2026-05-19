@@ -9,20 +9,6 @@ function _rkt_xorshift32 --argument-names s
     echo $s
 end
 
-function _rkt_djb2 --argument-names str
-    set -l h 5381
-    set -l len (string length -- "$str")
-    for i in (seq $len)
-        set -l ch (string sub --start $i --length 1 -- "$str")
-        set -l c (printf "%d" \'$ch)
-        set h (math "($h * 33 + $c) % 4294967296")
-    end
-    if test $h -eq 0
-        set h 1
-    end
-    echo $h
-end
-
 function _rkt_prng_seed
     while true
         set -g _RKT_PRNG_STATE (od -An -N4 -tu4 /dev/urandom | string trim)
