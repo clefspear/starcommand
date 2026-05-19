@@ -153,14 +153,23 @@ end
 
 function _rocket_record_history --description "Append palette to history, cap at 100 entries"
     set --local file ~/.config/fish/rocket_history.txt
+    set --local lock $file.lock
     mkdir -p (dirname $file)
+    set --local waited 0
+    while not mkdir $lock 2>/dev/null
+        sleep 0.05
+        set waited (math "$waited + 1")
+        if test $waited -ge 20
+            return 1
+        end
+    end
     echo (string join " " $argv) >> $file
-
     set --local lc (wc -l < $file | string trim)
     if test $lc -gt 100
         tail -n 100 $file > $file.tmp
         and mv $file.tmp $file
     end
+    rmdir $lock 2>/dev/null
 end
 
 

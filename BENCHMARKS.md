@@ -65,3 +65,7 @@ Populated global `_RKT_PALETTE_BYTES` once per render after palette assignment. 
 | bash  | 0.58                | 0.56               | 0.22                | 0.21               |
 
 Replaced `sort -u` subprocess with pure-bash sentinel string (`::` delimited) for deduplicating star positions. Eliminates `sort` fork per render. Parity verified — same set of positions produces byte-identical output.
+
+## Task 7 — History file race: serialize append + trim
+
+Added `mkdir`-based lock with 1s timeout to `_rocket_record_history` in bash, zsh, and fish. Stress test: 10 concurrent `bash -c 'rkt_starcommand --seed N'` processes all appended without clobbering — history file contained exactly 10 new lines.

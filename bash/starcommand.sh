@@ -342,12 +342,22 @@ rkt_gen_rocket_palette() {
 
 _rocket_record_history() {
     local file="$HOME/.config/bash/rocket_history.txt"
+    local lock="$file.lock"
     mkdir -p "$(dirname "$file")"
+    local waited=0
+    while ! mkdir "$lock" 2>/dev/null; do
+        sleep 0.05
+        waited=$((waited + 1))
+        (( waited < 20 )) || return 1
+    done
+    trap 'rmdir "$lock" 2>/dev/null' EXIT
     echo "$*" >> "$file"
     local lc=$(wc -l < "$file" | tr -d ' ')
     if (( lc > 100 )); then
         tail -n 100 "$file" > "$file.tmp" && mv "$file.tmp" "$file"
     fi
+    rmdir "$lock" 2>/dev/null
+    trap - EXIT
 }
 
 _rocket_pick_palette() {
