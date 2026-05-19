@@ -1,6 +1,17 @@
-# starcommand.ps1 — Portable rocket greeting for PowerShell
+﻿# starcommand.ps1 — Portable rocket greeting for PowerShell
 # Implements xorshift32 PRNG for cross-shell deterministic output
 # Works in PowerShell 5.1+ and PowerShell 7+
+
+# ── UTF-8 output encoding ──────────────────────────────────────────────────────────
+
+# Ensure UTF-8 output so multi-byte chars (★, …, box-drawing) render correctly
+# on Windows Terminal / Windows PowerShell, which default to legacy codepages.
+if ([Console]::OutputEncoding.CodePage -ne 65001) {
+    [Console]::OutputEncoding = [System.Text.UTF8Encoding]::new()
+}
+if ($OutputEncoding.CodePage -ne 65001) {
+    $OutputEncoding = [System.Text.UTF8Encoding]::new()
+}
 
 # ── Portable PRNG ──────────────────────────────────────────────────────────────
 
