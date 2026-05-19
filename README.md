@@ -8,6 +8,10 @@ starcommand launches a different rocket every time you open a shell — a bash, 
 
 -----
 
+<table>
+<tr>
+<td>
+
 ## How many rockets are possible?
 
 A lot.
@@ -22,6 +26,11 @@ A lot.
 Every shell you open rolls a fresh palette from a high-entropy seed, so two identical rockets appearing twice in a lifetime is statistically impossible. Every tab is — visually — the first time anyone has ever seen that exact rocket.
 
 But the kicker: it's all reproducible. Save a palette to favorites and you've saved the *entire visual identity*. Same six hex codes always produce the same 18 stars in the same 18 positions with the same flame. The palette is the spec.
+
+</td>
+<td><img src="docs/narrow.png" width="240"></td>
+</tr>
+</table>
 
 ![star-history](docs/star-history.png)
 
