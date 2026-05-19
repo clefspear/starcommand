@@ -166,10 +166,33 @@ _gen_rocket_palette() {
     3) offs=(0 45 115 180 235 295) ;;
     *) offs=(0 65 125 190 245 310) ;;
   esac
+  local -a lines=()
   for off in "${offs[@]}"; do
-    local h=$(( (h_base + off) % 360 ))
-    _RKT_GEN_PALETTE+=($(_hsl_to_hex "$h" "$sat" "$light"))
+    lines+=("$(( (h_base + off) % 360 )) $sat $light")
   done
+  _RKT_GEN_PALETTE=("${(@f)$(printf '%s\n' "${lines[@]}" | awk '{
+    h = $1; s = $2; l_in = $3
+    sat = s / 100
+    light = l_in / 100
+    c = (1 - (2*light - 1 < 0 ? -(2*light - 1) : 2*light - 1)) * sat
+    hp = h / 60
+    x = (hp - 2*int(hp/2) - 1)
+    if (x < 0) x = -x
+    x = 1 - x
+    x = c * x
+    m = light - c / 2
+    hi = int(h)
+    if (hi < 60) { r = c; g = x; b = 0 }
+    else if (hi < 120) { r = x; g = c; b = 0 }
+    else if (hi < 180) { r = 0; g = c; b = x }
+    else if (hi < 240) { r = 0; g = x; b = c }
+    else if (hi < 300) { r = x; g = 0; b = c }
+    else { r = c; g = 0; b = x }
+    ri = int((r + m) * 255 + 0.5)
+    gi = int((g + m) * 255 + 0.5)
+    bi = int((b + m) * 255 + 0.5)
+    printf "%02x%02x%02x\n", ri, gi, bi
+  }')}")
 }
 
 _rocket_record_history() {

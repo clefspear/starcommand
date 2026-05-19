@@ -38,3 +38,12 @@ Inlined xorshift32 directly in `rkt_prng_range` instead of calling via `$(rkt_xo
 | bash  | 0.70                | 0.72               | 0.32                | 0.31               |
 
 Changed `rkt_star_color_for_mode` to set `_RKT_PRNG_RET` global instead of `echo`. Updated caller in `rkt_render_row` to read global directly instead of `$(...)` subshell. Benefit amplifies under neon mode (18 stars × PRNG draws).
+
+## Task 4 — HSL converter: drop awk fan-out
+
+| Shell | Cold median (before) | Cold median (after) | Warm median (before) | Warm median (after) |
+|-------|---------------------|--------------------|---------------------|--------------------|
+| bash  | 0.70                | 0.61               | 0.32                | 0.23               |
+| zsh   | 0.71                | 0.71               | 0.28                | 0.19               |
+
+Batched 6 HSL→hex conversions into a single awk invocation in both `rkt_gen_rocket_palette` (bash) and `_gen_rocket_palette` (zsh). Eliminates 5 awk forks per palette generation (~30-60ms total).

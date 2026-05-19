@@ -313,8 +313,29 @@ rkt_gen_rocket_palette() {
 
     for off in "${offs[@]}"; do
         h=$(((h_base + off) % 360))
-        rkt_hsl_to_hex "$h" "$sat" "$light"
-    done
+        echo "$h $sat $light"
+    done | awk '{
+        h = $1; s = $2; l_in = $3
+        sat = s / 100
+        light = l_in / 100
+        c = (1 - (2*light - 1 < 0 ? -(2*light - 1) : 2*light - 1)) * sat
+        hp = h / 60
+        t = hp - 2 * int(hp / 2)
+        td = t - 1
+        x = c * (1 - (td < 0 ? -td : td))
+        m = light - c / 2
+        hi = int(h)
+        if (hi < 60) { r = c; g = x; b = 0 }
+        else if (hi < 120) { r = x; g = c; b = 0 }
+        else if (hi < 180) { r = 0; g = c; b = x }
+        else if (hi < 240) { r = 0; g = x; b = c }
+        else if (hi < 300) { r = x; g = 0; b = c }
+        else { r = c; g = 0; b = x }
+        ri = int((r + m) * 255 + 0.5)
+        gi = int((g + m) * 255 + 0.5)
+        bi = int((b + m) * 255 + 0.5)
+        printf "%02x%02x%02x\n", ri, gi, bi
+    }'
 }
 
 _rocket_record_history() {
