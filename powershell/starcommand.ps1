@@ -2,6 +2,8 @@
 # Implements xorshift32 PRNG for cross-shell deterministic output
 # Works in PowerShell 5.1+ and PowerShell 7+
 
+$script:RktVersion = '1.0.0'
+
 # ── UTF-8 output encoding ──────────────────────────────────────────────────────────
 
 # Ensure UTF-8 output so multi-byte chars (★, …, box-drawing) render correctly

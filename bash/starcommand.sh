@@ -2,6 +2,8 @@
 # starcommand.sh — Portable rocket greeting for Bash
 # Implements xorshift32 PRNG for cross-shell deterministic output
 
+_RKT_VERSION="1.0.0"
+
 # ── Portable PRNG ──────────────────────────────────────────────────────────────
 
 _RKT_PRNG_STATE=0

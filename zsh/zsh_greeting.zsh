@@ -1,6 +1,9 @@
 # zsh_greeting.zsh — Rocketfish zsh port
 # Deterministic rocket + starfield greeting for zsh
 # Ported from fish_greeting.fish
+
+_RKT_VERSION="1.0.0"
+
 #
 # Install:
 #   curl -fsSL https://raw.githubusercontent.com/clefspear/starcommand/main/zsh/zsh_greeting.zsh | zsh

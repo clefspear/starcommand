@@ -1,3 +1,5 @@
+set -g _RKT_VERSION "1.0.0"
+
 # ── Portable xorshift32 PRNG ───────────────────────────────────────────────────
 
 set -g _RKT_PRNG_STATE 0
