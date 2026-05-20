@@ -2,6 +2,10 @@
 
 All notable changes to starcommand are documented here.
 
+## [1.0.5] — 2026-05-20
+
+- Update nudge now detects when the installed version matches the cached remote version and clears the cache, so it immediately reflects the latest available version after an update
+
 ## [1.0.4] — 2026-05-20
 
 - `star update` now clears the stale nudge cache on successful update so the update prompt disappears immediately

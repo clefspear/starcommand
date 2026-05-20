@@ -1,4 +1,4 @@
-set -g _RKT_VERSION "1.0.4"
+set -g _RKT_VERSION "1.0.5"
 set -g _RKT_UPDATE_CACHE ~/.config/fish/rocket_update_check
 
 function _rkt_update_check_background --description "Background weekly version check"
@@ -10,6 +10,13 @@ function _rkt_update_check_background --description "Background weekly version c
         set --local last_check (head -1 < $_RKT_UPDATE_CACHE)
         set --local age (math "$now - $last_check")
         test $age -lt 604800; and return
+    end
+    if test -f "$_RKT_UPDATE_CACHE"
+        set --local cached_v (tail -1 < $_RKT_UPDATE_CACHE 2>/dev/null)
+        if test "$cached_v" = "$_RKT_VERSION"
+            rm -f $_RKT_UPDATE_CACHE
+            return
+        end
     end
     begin
         set --local v (curl -fsSL --max-time 3 "https://raw.githubusercontent.com/clefspear/starcommand/main/VERSION" 2>/dev/null)

@@ -2,7 +2,7 @@
 # Implements xorshift32 PRNG for cross-shell deterministic output
 # Works in PowerShell 5.1+ and PowerShell 7+
 
-$script:RktVersion = '1.0.4'
+$script:RktVersion = '1.0.5'
 $script:RktUpdateCache = Join-Path $HOME '.config/powershell/rocket_update_check'
 
 function Invoke-UpdateCheckBackground {
@@ -16,6 +16,14 @@ function Invoke-UpdateCheckBackground {
         $lastCheck = [long](Get-Content $script:RktUpdateCache -TotalCount 1 -ErrorAction SilentlyContinue)
         $age = $now - $lastCheck
         if ($age -lt 604800) { return }
+    }
+
+    if (Test-Path $script:RktUpdateCache) {
+        $cachedV = Get-Content $script:RktUpdateCache -Tail 1 -ErrorAction SilentlyContinue
+        if ($cachedV -eq $script:RktVersion) {
+            Remove-Item $script:RktUpdateCache -Force -ErrorAction SilentlyContinue
+            return
+        }
     }
 
     $null = Start-Job -ScriptBlock {

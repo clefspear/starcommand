@@ -2,7 +2,7 @@
 # Deterministic rocket + starfield greeting for zsh
 # Ported from fish_greeting.fish
 
-_RKT_VERSION="1.0.4"
+_RKT_VERSION="1.0.5"
 _RKT_UPDATE_CACHE="$HOME/.config/zsh/rocket_update_check"
 
 _rkt_update_check_background() {
@@ -15,6 +15,14 @@ _rkt_update_check_background() {
     IFS= read -r last_check < "$_RKT_UPDATE_CACHE"
     local age=$((now - last_check))
     [[ $age -lt 604800 ]] && return
+  fi
+  if [[ -f "$_RKT_UPDATE_CACHE" ]]; then
+    local cached_v
+    cached_v=$(tail -1 "$_RKT_UPDATE_CACHE" 2>/dev/null)
+    if [[ "$cached_v" == "$_RKT_VERSION" ]]; then
+      rm -f "$_RKT_UPDATE_CACHE"
+      return
+    fi
   fi
   ( curl -fsSL --max-time 3 "https://raw.githubusercontent.com/clefspear/starcommand/main/VERSION" 2>/dev/null \
       | { IFS= read -r v; printf '%s\n%s\n' "$now" "${v:-}"; } \
