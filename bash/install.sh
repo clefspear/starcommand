@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+# Created By: Peter Azmy
 # Install starcommand bash greeting via remote download.
 # Usage:
 #   curl -fsSL https://raw.githubusercontent.com/clefspear/starcommand/main/bash/install.sh | bash

@@ -2,6 +2,13 @@
 
 All notable changes to starcommand are documented here.
 
+## [1.0.6] — 2026-05-20
+
+- `star update` now pulls from tagged GitHub Releases for immutability
+- Added y/N confirmation before overwriting on update
+- Background update check is now opt-in on first run instead of opt-out
+- Update cache cleared after successful update in zsh and PowerShell
+
 ## [1.0.5] — 2026-05-20
 
 - Update nudge now detects when the installed version matches the cached remote version and clears the cache, so it immediately reflects the latest available version after an update

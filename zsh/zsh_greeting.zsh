@@ -1,12 +1,14 @@
+# Created By: Peter Azmy
 # zsh_greeting.zsh — Rocketfish zsh port
 # Deterministic rocket + starfield greeting for zsh
 # Ported from fish_greeting.fish
 
-_RKT_VERSION="1.0.5"
+_RKT_VERSION="1.0.6"
 _RKT_UPDATE_CACHE="$HOME/.config/zsh/rocket_update_check"
 
 _rkt_update_check_background() {
   [[ -n ${STARCOMMAND_NO_UPDATE_CHECK:-} ]] && return
+  [[ "${_RKT_AUTO_UPDATE_CHECK:-}" == "yes" ]] || return
   [[ -t 1 ]] || return
   mkdir -p "$HOME/.config/zsh"
   local now=$(date +%s)
@@ -147,6 +149,7 @@ _rkt_load_settings() {
   typeset -g _rkt_favorite_star_mode=gold
   typeset -g _rkt_terminal_theme=dark
   typeset -g _rkt_favorite_weight=20
+  typeset -g _RKT_AUTO_UPDATE_CHECK=""
   [[ -f "$cfg" ]] && source "$cfg"
 }
 
@@ -158,6 +161,7 @@ _rkt_save_settings() {
   printf 'typeset -g _rkt_favorite_star_mode=%s\n' "${(q)_rkt_favorite_star_mode}" >> "$cfg"
   printf 'typeset -g _rkt_terminal_theme=%s\n'     "${(q)_rkt_terminal_theme}"     >> "$cfg"
   printf 'typeset -g _rkt_favorite_weight=%s\n'    "${(q)_rkt_favorite_weight}"    >> "$cfg"
+  printf 'typeset -g _RKT_AUTO_UPDATE_CHECK=%s\n'  "${(q)_RKT_AUTO_UPDATE_CHECK}"  >> "$cfg"
 }
 
 _rkt_print_option() {
@@ -781,8 +785,12 @@ star() {
         echo "starcommand is already up to date (v$_RKT_VERSION)."
         return 0
       fi
-      echo "  Updating starcommand v$_RKT_VERSION → v$remote_version"
-      echo "  Changelog: https://github.com/clefspear/starcommand/blob/main/CHANGELOG.md"
+      echo "starcommand v$remote_version is available. Update now? [y/N]"
+      read -r _rkt_response
+      if [[ "$_rkt_response" != "y" && "$_rkt_response" != "Y" ]]; then
+        echo "Update cancelled."
+        return 0
+      fi
       local script_path="${(%):-%x}"
       if [[ -z $script_path ]]; then
         echo "Cannot determine script path. Update manually."
@@ -790,7 +798,7 @@ star() {
       fi
       local temp_file
       temp_file=$(mktemp 2>/dev/null) || temp_file="/tmp/starcommand_update.$$"
-      if ! curl -fsSL --max-time 10 -o "$temp_file" "https://raw.githubusercontent.com/clefspear/starcommand/main/zsh/zsh_greeting.zsh" 2>/dev/null; then
+      if ! curl -fsSL --max-time 10 -o "$temp_file" "https://github.com/clefspear/starcommand/releases/download/v${remote_version}/zsh_greeting.zsh" 2>/dev/null; then
         echo "Download failed. Update aborted."
         rm -f "$temp_file"
         return 1
@@ -798,6 +806,7 @@ star() {
       cp "$script_path" "${script_path}.bak"
       mv "$temp_file" "$script_path"
       echo "Updated to v$remote_version. Open a new tab to take effect."
+      rm -f "$_RKT_UPDATE_CACHE"
       ;;
 
     help|-h|--help)
@@ -918,8 +927,18 @@ _rkt_greeting() {
   _rkt_prng_seed
   _rkt_hw_info
   _rkt_net_info
-  _rkt_update_check_background
   _rkt_load_settings
+  if [[ -z "${_RKT_AUTO_UPDATE_CHECK:-}" ]]; then
+    echo -n "starcommand: Allow starcommand to check Github periodically for future updates? [Y/N] "
+    read -r _rkt_response
+    if [[ "$_rkt_response" == "y" || "$_rkt_response" == "Y" ]]; then
+      typeset -g _RKT_AUTO_UPDATE_CHECK="yes"
+    else
+      typeset -g _RKT_AUTO_UPDATE_CHECK="no"
+    fi
+    _rkt_save_settings
+  fi
+  _rkt_update_check_background
   _rocket_pick_palette
   local -a colors=("${_RKT_PALETTE[@]}")
   typeset -g _rkt_tip="${colors[1]}"

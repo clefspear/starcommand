@@ -1,12 +1,14 @@
-﻿# starcommand.ps1 — Portable rocket greeting for PowerShell
+﻿# Created By: Peter Azmy
+# starcommand.ps1 — Portable rocket greeting for PowerShell
 # Implements xorshift32 PRNG for cross-shell deterministic output
 # Works in PowerShell 5.1+ and PowerShell 7+
 
-$script:RktVersion = '1.0.5'
+$script:RktVersion = '1.0.6'
 $script:RktUpdateCache = Join-Path $HOME '.config/powershell/rocket_update_check'
 
 function Invoke-UpdateCheckBackground {
     if ($env:STARCOMMAND_NO_UPDATE_CHECK) { return }
+    if ($global:_RKT_AUTO_UPDATE_CHECK -ne 'yes') { return }
 
     $cacheDir = Split-Path $script:RktUpdateCache -Parent
     New-Item -ItemType Directory -Path $cacheDir -Force -ErrorAction SilentlyContinue | Out-Null
@@ -469,6 +471,7 @@ function Invoke-LoadSettings {
     $global:_rkt_favorite_star_mode = 'gold'
     $global:_rkt_terminal_theme = 'dark'
     $global:_rkt_favorite_weight = 20
+    $global:_RKT_AUTO_UPDATE_CHECK = ''
     if (Test-Path $cfg) { . $cfg }
 }
 
@@ -481,6 +484,7 @@ function Invoke-SaveSettings {
 `$global:_rkt_favorite_star_mode='$($global:_rkt_favorite_star_mode)'
 `$global:_rkt_terminal_theme='$($global:_rkt_terminal_theme)'
 `$global:_rkt_favorite_weight=$($global:_rkt_favorite_weight)
+`$global:_RKT_AUTO_UPDATE_CHECK='$($global:_RKT_AUTO_UPDATE_CHECK)'
 "@ | Set-Content $cfg
 }
 
@@ -969,8 +973,12 @@ function star {
                 [Console]::WriteLine("starcommand is already up to date (v$script:RktVersion).")
                 return
             }
-            [Console]::WriteLine("  Updating starcommand v$script:RktVersion → v$remoteVersion")
-            [Console]::WriteLine('  Changelog: https://github.com/clefspear/starcommand/blob/main/CHANGELOG.md')
+            [Console]::WriteLine("starcommand v$remoteVersion is available. Update now? [y/N]")
+            $response = [Console]::ReadLine()
+            if ($response -ne 'y' -and $response -ne 'Y') {
+                [Console]::WriteLine('Update cancelled.')
+                return
+            }
             $scriptPath = if ($PSCommandPath) { $PSCommandPath } else { $MyInvocation.MyCommand.Source }
             if (-not $scriptPath -or -not (Test-Path $scriptPath)) {
                 [Console]::WriteLine('Cannot determine script path. Update manually.')
@@ -978,10 +986,11 @@ function star {
             }
             $tempFile = [System.IO.Path]::GetTempFileName()
             try {
+                $dlUrl = "https://github.com/clefspear/starcommand/releases/download/v$remoteVersion/starcommand.ps1"
                 if (Get-Command curl -ErrorAction SilentlyContinue) {
-                    & curl -fsSL --max-time 10 -o $tempFile 'https://raw.githubusercontent.com/clefspear/starcommand/main/powershell/starcommand.ps1' 2>$null
+                    & curl -fsSL --max-time 10 -o $tempFile $dlUrl 2>$null
                 } else {
-                    Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/clefspear/starcommand/main/powershell/starcommand.ps1' -TimeoutSec 10 -UseBasicParsing -OutFile $tempFile
+                    Invoke-WebRequest -Uri $dlUrl -TimeoutSec 10 -UseBasicParsing -OutFile $tempFile
                 }
                 if (-not (Test-Path $tempFile) -or ((Get-Item $tempFile).Length -eq 0)) {
                     [Console]::WriteLine('Download failed. Update aborted.')
@@ -991,6 +1000,7 @@ function star {
                 Copy-Item $scriptPath "$scriptPath.bak" -Force
                 Move-Item $tempFile $scriptPath -Force
                 [Console]::WriteLine("Updated to v$remoteVersion. Open a new tab to take effect.")
+                Remove-Item $script:RktUpdateCache -Force -ErrorAction SilentlyContinue
             } catch {
                 [Console]::WriteLine('Download failed. Update aborted.')
                 Remove-Item $tempFile -ErrorAction SilentlyContinue
@@ -1216,6 +1226,16 @@ function Invoke-Starcommand {
         $global:_rkt_star_mode = $global:_rkt_random_star_mode
     }
 
+    if (-not $global:_RKT_AUTO_UPDATE_CHECK) {
+        [Console]::Write('starcommand: Allow starcommand to check Github periodically for future updates? [Y/N] ')
+        $response = [Console]::ReadLine()
+        if ($response -eq 'y' -or $response -eq 'Y') {
+            $global:_RKT_AUTO_UPDATE_CHECK = 'yes'
+        } else {
+            $global:_RKT_AUTO_UPDATE_CHECK = 'no'
+        }
+        Invoke-SaveSettings
+    }
     Invoke-HwInfo
     Invoke-NetInfo
     Invoke-UpdateCheckBackground

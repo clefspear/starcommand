@@ -1,8 +1,10 @@
-set -g _RKT_VERSION "1.0.5"
+# Created By: Peter Azmy
+set -g _RKT_VERSION "1.0.6"
 set -g _RKT_UPDATE_CACHE ~/.config/fish/rocket_update_check
 
 function _rkt_update_check_background --description "Background weekly version check"
     test -n "$STARCOMMAND_NO_UPDATE_CHECK"; and return
+    set -q _RKT_AUTO_UPDATE_CHECK; and test "$_RKT_AUTO_UPDATE_CHECK" != "yes"; and return
     isatty stdout; or return
     mkdir -p ~/.config/fish
     set --local now (date +%s)
@@ -106,6 +108,7 @@ function _rkt_load_settings --description "Load star color settings; defaults if
     set --global _rkt_favorite_star_mode gold
     set --global _rkt_terminal_theme dark
     set --global _rkt_favorite_weight 20
+    set --global _RKT_AUTO_UPDATE_CHECK ""
     if test -f $cfg
         source $cfg
     end
@@ -119,6 +122,7 @@ function _rkt_save_settings --description "Persist star color settings"
     printf 'set -g _rkt_favorite_star_mode %s\n' (string escape -- "$_rkt_favorite_star_mode") >> $cfg
     printf 'set -g _rkt_terminal_theme %s\n'     (string escape -- "$_rkt_terminal_theme")     >> $cfg
     printf 'set -g _rkt_favorite_weight %s\n'    (string escape -- "$_rkt_favorite_weight")    >> $cfg
+    printf 'set -g _RKT_AUTO_UPDATE_CHECK %s\n'  (string escape -- "$_RKT_AUTO_UPDATE_CHECK")  >> $cfg
 end
 
 
@@ -757,15 +761,19 @@ function star --description "Save / browse / preview rocket palettes"
                 echo "starcommand is already up to date (v$_RKT_VERSION)."
                 return 0
             end
-            echo "  Updating starcommand v$_RKT_VERSION → v$remote_version"
-            echo "  Changelog: https://github.com/clefspear/starcommand/blob/main/CHANGELOG.md"
+            echo "starcommand v$remote_version is available. Update now? [y/N]"
+            read --local response
+            if test "$response" != "y" -a "$response" != "Y"
+                echo "Update cancelled."
+                return 0
+            end
             set --local script_path (status filename)
             if not test -f "$script_path"
                 echo "Cannot determine script path. Update manually."
                 return 1
             end
             set --local temp_file (mktemp 2>/dev/null; or echo /tmp/starcommand_update.$fish_pid)
-            if not curl -fsSL --max-time 10 -o "$temp_file" "https://raw.githubusercontent.com/clefspear/starcommand/main/fish/fish_greeting.fish" 2>/dev/null
+            if not curl -fsSL --max-time 10 -o "$temp_file" "https://github.com/clefspear/starcommand/releases/download/v$remote_version/fish_greeting.fish" 2>/dev/null
                 echo "Download failed. Update aborted."
                 rm -f "$temp_file"
                 return 1
@@ -909,8 +917,18 @@ function fish_greeting -d "Greeting message on shell session start up"
     _rkt_prng_seed
     _rkt_hw_info
     _rkt_net_info
-    _rkt_update_check_background
     _rkt_load_settings
+    if not set -q _RKT_AUTO_UPDATE_CHECK; or test -z "$_RKT_AUTO_UPDATE_CHECK"
+        echo -n "starcommand: Allow starcommand to check Github periodically for future updates? [Y/N] "
+        read --local response
+        if test "$response" = "y" -o "$response" = "Y"
+            set -g _RKT_AUTO_UPDATE_CHECK "yes"
+        else
+            set -g _RKT_AUTO_UPDATE_CHECK "no"
+        end
+        _rkt_save_settings
+    end
+    _rkt_update_check_background
 
     set --local colors (_rocket_pick_palette)
     set --global _rkt_tip $colors[1]

@@ -1,4 +1,5 @@
 #!/usr/bin/env pwsh
+# Created By: Peter Azmy
 # Install starcommand.ps1 into PowerShell profile via remote download.
 # Works on Windows PowerShell 5.1 and PowerShell 7+ (Windows / macOS / Linux).
 

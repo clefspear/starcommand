@@ -1,12 +1,14 @@
 #!/usr/bin/env bash
+# Created By: Peter Azmy
 # starcommand.sh — Portable rocket greeting for Bash
 # Implements xorshift32 PRNG for cross-shell deterministic output
 
-_RKT_VERSION="1.0.5"
+_RKT_VERSION="1.0.6"
 _RKT_UPDATE_CACHE="$HOME/.config/bash/rocket_update_check"
 
 _rkt_update_check_background() {
     [[ -n ${STARCOMMAND_NO_UPDATE_CHECK:-} ]] && return
+    [[ "${_RKT_AUTO_UPDATE_CHECK:-}" == "yes" ]] || return
     [[ -t 1 ]] || return
     mkdir -p "$HOME/.config/bash"
     local now=$(date +%s)
@@ -488,6 +490,7 @@ _rkt_load_settings() {
     _rkt_favorite_star_mode=gold
     _rkt_terminal_theme=dark
     _rkt_favorite_weight=20
+    _RKT_AUTO_UPDATE_CHECK=""
     [[ -f "$cfg" ]] && source "$cfg"
 }
 
@@ -498,6 +501,7 @@ _rkt_save_settings() {
     printf '_rkt_favorite_star_mode=%s\n' "$_rkt_favorite_star_mode" >> "$cfg"
     printf '_rkt_terminal_theme=%s\n'     "$_rkt_terminal_theme"     >> "$cfg"
     printf '_rkt_favorite_weight=%s\n'    "$_rkt_favorite_weight"    >> "$cfg"
+    printf '_RKT_AUTO_UPDATE_CHECK=%s\n'  "$_RKT_AUTO_UPDATE_CHECK"  >> "$cfg"
 }
 
 _rkt_print_option() {
@@ -925,8 +929,12 @@ star() {
                 echo "starcommand is already up to date (v$_RKT_VERSION)."
                 return 0
             fi
-            echo "  Updating starcommand v$_RKT_VERSION → v$remote_version"
-            echo "  Changelog: https://github.com/clefspear/starcommand/blob/main/CHANGELOG.md"
+            echo "starcommand v$remote_version is available. Update now? [y/N]"
+            read -r _rkt_response
+            if [[ "$_rkt_response" != "y" && "$_rkt_response" != "Y" ]]; then
+                echo "Update cancelled."
+                return 0
+            fi
             local script_path="${BASH_SOURCE[0]}"
             if [[ -z $script_path ]]; then
                 echo "Cannot determine script path. Update manually."
@@ -934,7 +942,7 @@ star() {
             fi
             local temp_file
             temp_file=$(mktemp 2>/dev/null) || temp_file="/tmp/starcommand_update.$$"
-            if ! curl -fsSL --max-time 10 -o "$temp_file" "https://raw.githubusercontent.com/clefspear/starcommand/main/bash/starcommand.sh" 2>/dev/null; then
+            if ! curl -fsSL --max-time 10 -o "$temp_file" "https://github.com/clefspear/starcommand/releases/download/v${remote_version}/starcommand.sh" 2>/dev/null; then
                 echo "Download failed. Update aborted."
                 rm -f "$temp_file"
                 return 1
@@ -1118,6 +1126,16 @@ rkt_starcommand() {
     fi
 
     _rkt_load_settings
+    if [[ -z "${_RKT_AUTO_UPDATE_CHECK:-}" ]]; then
+        echo -n "starcommand: Allow starcommand to check Github periodically for future updates? [Y/N] "
+        read -r _rkt_response
+        if [[ "$_rkt_response" == "y" || "$_rkt_response" == "Y" ]]; then
+            _RKT_AUTO_UPDATE_CHECK="yes"
+        else
+            _RKT_AUTO_UPDATE_CHECK="no"
+        fi
+        _rkt_save_settings
+    fi
     _RKT_TERMINAL_THEME=$_rkt_terminal_theme
 
     local -a colors
