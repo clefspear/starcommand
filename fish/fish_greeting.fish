@@ -766,6 +766,7 @@ function star --description "Save / browse / preview rocket palettes"
             cp "$script_path" "$script_path.bak"
             mv "$temp_file" "$script_path"
             echo "Updated to v$remote_version. Open a new tab to take effect."
+            rm -f $_RKT_UPDATE_CACHE
 
         case help -h --help
             _rkt_load_settings
