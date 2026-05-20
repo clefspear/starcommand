@@ -2,6 +2,17 @@
 
 All notable changes to starcommand are documented here.
 
+## [1.0.2] — 2026-05-19
+
+- Self-update via `star update` with weekly background nudge when new versions are available
+- `star help` now displays the installed version
+
+## [1.0.1] — 2026-05-19
+
+- Fixed Linux memory display returning blank on Debian (now reads /proc/meminfo directly)
+- OS line on Linux now shows distro name and version from /etc/os-release instead of generic "Linux x86_64"
+- PowerShell on Windows now forces UTF-8 output encoding so star characters render correctly
+
 ## [1.0.0] — 2026-05-19
 
 Initial release.
@@ -10,4 +21,3 @@ Initial release.
 - Cross-shell byte-identical palette generation via shared PRNG
 - Sysinfo display with terminal-width truncation
 - `star` command for favorites, history, and palette management
-- Self-update via `star update`

@@ -2,7 +2,49 @@
 # Implements xorshift32 PRNG for cross-shell deterministic output
 # Works in PowerShell 5.1+ and PowerShell 7+
 
-$script:RktVersion = '1.0.0'
+$script:RktVersion = '1.0.2'
+$script:RktUpdateCache = Join-Path $HOME '.config/powershell/rocket_update_check'
+
+function Invoke-UpdateCheckBackground {
+    if ($env:STARCOMMAND_NO_UPDATE_CHECK) { return }
+
+    $cacheDir = Split-Path $script:RktUpdateCache -Parent
+    New-Item -ItemType Directory -Path $cacheDir -Force -ErrorAction SilentlyContinue | Out-Null
+
+    $now = [DateTimeOffset]::UtcNow.ToUnixTimeSeconds()
+    if (Test-Path $script:RktUpdateCache) {
+        $lastCheck = [long](Get-Content $script:RktUpdateCache -TotalCount 1 -ErrorAction SilentlyContinue)
+        $age = $now - $lastCheck
+        if ($age -lt 604800) { return }
+    }
+
+    $null = Start-Job -ScriptBlock {
+        param($url, $cacheFile, $now)
+        try {
+            if (Get-Command curl -ErrorAction SilentlyContinue) {
+                $v = & curl -fsSL --max-time 3 $url 2>$null
+            } else {
+                $v = (Invoke-WebRequest -Uri $url -TimeoutSec 3 -UseBasicParsing).Content.Trim()
+            }
+            "$now`n$v" | Out-File $cacheFile -Encoding ascii -Force
+        } catch {}
+    } -ArgumentList 'https://raw.githubusercontent.com/clefspear/starcommand/main/VERSION', $script:RktUpdateCache, $now
+}
+
+function Invoke-UpdateCheckNudge {
+    if ($env:STARCOMMAND_NO_UPDATE_CHECK) { return }
+    if (-not (Test-Path $script:RktUpdateCache)) { return }
+
+    $lines = Get-Content $script:RktUpdateCache -ErrorAction SilentlyContinue
+    if ($lines.Count -lt 2) { return }
+    $cachedVersion = $lines[-1].Trim()
+    if (-not $cachedVersion) { return }
+    if ($cachedVersion -eq $script:RktVersion) { return }
+
+    Set-RocketColor grey
+    [Console]::WriteLine("(starcommand v$cachedVersion available — run 'star update' — https://github.com/clefspear/starcommand/blob/main/CHANGELOG.md)")
+    Set-RocketColor normal
+}
 
 # ── UTF-8 output encoding ──────────────────────────────────────────────────────────
 
@@ -949,6 +991,8 @@ function star {
 
         'help' {
             Invoke-LoadSettings
+            [Console]::WriteLine("starcommand v$script:RktVersion")
+            [Console]::WriteLine()
             [Console]::WriteLine('star                          save current palette to favorites')
             [Console]::WriteLine('star list                     show all favorites')
             [Console]::WriteLine('star remove N                 delete favorite #N')
@@ -1166,6 +1210,7 @@ function Invoke-Starcommand {
 
     Invoke-HwInfo
     Invoke-NetInfo
+    Invoke-UpdateCheckBackground
 
     [Console]::WriteLine()
 
@@ -1209,6 +1254,7 @@ function Invoke-Starcommand {
     Set-RocketColor grey
     [Console]::WriteLine('Have a Nice Trip!')
     Set-RocketColor normal
+    Invoke-UpdateCheckNudge
 }
 
 # Export functions for testing

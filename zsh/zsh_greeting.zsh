@@ -2,7 +2,37 @@
 # Deterministic rocket + starfield greeting for zsh
 # Ported from fish_greeting.fish
 
-_RKT_VERSION="1.0.0"
+_RKT_VERSION="1.0.2"
+_RKT_UPDATE_CACHE="$HOME/.config/zsh/rocket_update_check"
+
+_rkt_update_check_background() {
+  [[ -n ${STARCOMMAND_NO_UPDATE_CHECK:-} ]] && return
+  [[ -t 1 ]] || return
+  mkdir -p "$HOME/.config/zsh"
+  local now=$(date +%s)
+  if [[ -f "$_RKT_UPDATE_CACHE" ]]; then
+    local last_check
+    IFS= read -r last_check < "$_RKT_UPDATE_CACHE"
+    local age=$((now - last_check))
+    [[ $age -lt 604800 ]] && return
+  fi
+  ( curl -fsSL --max-time 3 "https://raw.githubusercontent.com/clefspear/starcommand/main/VERSION" 2>/dev/null \
+      | { IFS= read -r v; printf '%s\n%s\n' "$now" "${v:-}"; } \
+      > "$_RKT_UPDATE_CACHE" ) 2>/dev/null &
+  disown
+}
+
+_rkt_update_check_nudge() {
+  [[ -n ${STARCOMMAND_NO_UPDATE_CHECK:-} ]] && return
+  [[ -f "$_RKT_UPDATE_CACHE" ]] || return
+  local cached_version
+  cached_version=$(tail -1 "$_RKT_UPDATE_CACHE" 2>/dev/null)
+  [[ -n $cached_version ]] || return
+  [[ "$cached_version" != "$_RKT_VERSION" ]] || return
+  _rkt_set_color grey
+  echo "(starcommand v$cached_version available — run 'star update' — https://github.com/clefspear/starcommand/blob/main/CHANGELOG.md)"
+  _rkt_set_color normal
+}
 
 #
 # Install:
@@ -764,6 +794,8 @@ star() {
 
     help|-h|--help)
       _rkt_load_settings
+      echo "starcommand v$_RKT_VERSION"
+      echo ''
       echo "star                          save current palette to favorites"
       echo "star list                     show all favorites"
       echo "star remove N                 delete favorite #N"
@@ -878,6 +910,7 @@ _rkt_greeting() {
   _rkt_prng_seed
   _rkt_hw_info
   _rkt_net_info
+  _rkt_update_check_background
   _rkt_load_settings
   _rocket_pick_palette
   local -a colors=("${_RKT_PALETTE[@]}")
@@ -930,6 +963,7 @@ _rkt_greeting() {
   _rkt_set_color grey
   echo "Have a Nice Trip!"
   _rkt_set_color normal
+  _rkt_update_check_nudge
 }
 
 welcome_message() {

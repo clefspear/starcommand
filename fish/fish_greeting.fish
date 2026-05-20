@@ -1,4 +1,32 @@
-set -g _RKT_VERSION "1.0.0"
+set -g _RKT_VERSION "1.0.2"
+set -g _RKT_UPDATE_CACHE ~/.config/fish/rocket_update_check
+
+function _rkt_update_check_background --description "Background weekly version check"
+    test -n "$STARCOMMAND_NO_UPDATE_CHECK"; and return
+    isatty stdout; or return
+    mkdir -p ~/.config/fish
+    set --local now (date +%s)
+    if test -f "$_RKT_UPDATE_CACHE"
+        set --local last_check (head -1 < $_RKT_UPDATE_CACHE)
+        set --local age (math "$now - $last_check")
+        test $age -lt 604800; and return
+    end
+    begin
+        set --local v (curl -fsSL --max-time 3 "https://raw.githubusercontent.com/clefspear/starcommand/main/VERSION" 2>/dev/null)
+        printf '%s\n%s\n' "$now" "$v" > $_RKT_UPDATE_CACHE
+    end &
+end
+
+function _rkt_update_check_nudge --description "Print update nudge if newer version cached"
+    test -n "$STARCOMMAND_NO_UPDATE_CHECK"; and return
+    test -f "$_RKT_UPDATE_CACHE"; or return
+    set --local cached_version (tail -1 < $_RKT_UPDATE_CACHE 2>/dev/null)
+    test -n "$cached_version"; or return
+    test "$cached_version" != "$_RKT_VERSION"; or return
+    set_color grey
+    echo "(starcommand v$cached_version available — run 'star update' — https://github.com/clefspear/starcommand/blob/main/CHANGELOG.md)"
+    set_color normal
+end
 
 # ── Portable xorshift32 PRNG ───────────────────────────────────────────────────
 
@@ -741,6 +769,8 @@ function star --description "Save / browse / preview rocket palettes"
 
         case help -h --help
             _rkt_load_settings
+            echo "starcommand v$_RKT_VERSION"
+            echo ""
             echo "star                          save current palette to favorites"
             echo "star list                     show all favorites"
             echo "star remove N                 delete favorite #N"
@@ -871,6 +901,7 @@ function fish_greeting -d "Greeting message on shell session start up"
     _rkt_prng_seed
     _rkt_hw_info
     _rkt_net_info
+    _rkt_update_check_background
     _rkt_load_settings
 
     set --local colors (_rocket_pick_palette)
@@ -949,6 +980,7 @@ function fish_greeting -d "Greeting message on shell session start up"
     set_color grey
     echo "Have a Nice Trip!"
     set_color normal
+    _rkt_update_check_nudge
 end
 
 

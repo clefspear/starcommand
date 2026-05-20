@@ -137,6 +137,16 @@ Open a new tab. Done.
 
 The `-fSL` flags on curl matter: `-f` makes curl fail on HTTP errors instead of writing the error body to disk, `-S` shows the error message, and `-L` follows redirects. Without `-f`, a typo'd URL silently saves "404: Not Found" as your shell greeting and you'll see `command not found: 404:` on every new tab until you fix it.
 
+## Updating
+
+Run `star update` to fetch the latest version.
+
+starcommand checks for new versions once a week in the background. To disable, set `STARCOMMAND_NO_UPDATE_CHECK=1` in your shell's environment:
+
+- bash/zsh: add `export STARCOMMAND_NO_UPDATE_CHECK=1` to `~/.bashrc` or `~/.zshrc`
+- fish: add `set -gx STARCOMMAND_NO_UPDATE_CHECK 1` to `~/.config/fish/config.fish`
+- PowerShell: add `$env:STARCOMMAND_NO_UPDATE_CHECK = '1'` to your `$PROFILE`
+
 -----
 
 ## Color modes
