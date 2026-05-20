@@ -776,7 +776,22 @@ function _rkt_hw_info --description "Load OS/CPU/RAM into globals; cache to disk
         set --local cores_n (grep "cpu cores" /proc/cpuinfo | head -1 | cut -d ":" -f2 | tr -d " ")
         set --local cpu_type (grep "model name" /proc/cpuinfo | head -1 | cut -d ":" -f2)
         set cpu_str "$procs_n processors, $cores_n cores, $cpu_type"
-        set mem_str (free -h | grep "Mem" | cut -d " " -f 11)
+        if test -r /proc/meminfo
+            set --local mem_kb (awk '/^MemTotal:/ {print $2}' /proc/meminfo)
+            if test -n "$mem_kb"
+                set mem_str (awk -v k="$mem_kb" 'BEGIN{printf "%.0fGB", k/1024/1024}')
+            end
+        end
+        if test -z "$mem_str"
+            set mem_str (free -h 2>/dev/null | awk '/^Mem:/ {print $2}')
+        end
+        if test -r /etc/os-release
+            set --local pretty (grep '^PRETTY_NAME=' /etc/os-release 2>/dev/null | head -1 | cut -d= -f2- | tr -d '"')
+            set --local arch (uname -m)
+            if test -n "$pretty"
+                set os_str "$pretty $arch"
+            end
+        end
     end
 
     printf 'set -g _rkt_os %s\n' (string escape -- "$os_str")  > $cache

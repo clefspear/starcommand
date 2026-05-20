@@ -505,7 +505,22 @@ _rkt_hw_info() {
         local cores_n=$(grep "cpu cores" /proc/cpuinfo 2>/dev/null | head -1 | cut -d ":" -f2 | tr -d " ")
         local cpu_type=$(grep "model name" /proc/cpuinfo 2>/dev/null | head -1 | cut -d ":" -f2)
         cpu_str="$procs_n processors, $cores_n cores, $cpu_type"
-        mem_str=$(free -h 2>/dev/null | grep "Mem" | tr -s ' ' | cut -d ' ' -f 2)
+        if [[ -r /proc/meminfo ]]; then
+            local mem_kb=$(awk '/^MemTotal:/ {print $2}' /proc/meminfo)
+            if [[ -n $mem_kb ]]; then
+                mem_str=$(awk -v k="$mem_kb" 'BEGIN{printf "%.0fGB", k/1024/1024}')
+            fi
+        fi
+        if [[ -z $mem_str ]]; then
+            mem_str=$(free -h 2>/dev/null | awk '/^Mem:/ {print $2}')
+        fi
+        if [[ -r /etc/os-release ]]; then
+            local pretty=$(. /etc/os-release 2>/dev/null && echo "$PRETTY_NAME")
+            local arch=$(uname -m)
+            if [[ -n $pretty ]]; then
+                os_str="$pretty $arch"
+            fi
+        fi
     fi
     printf '_rkt_os="%s"\n'  "$os_str"  > "$cache"
     printf '_rkt_cpu="%s"\n' "$cpu_str" >> "$cache"
