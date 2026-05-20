@@ -708,6 +708,37 @@ function star --description "Save / browse / preview rocket palettes"
                     return 1
             end
 
+        case update
+            if not command -q curl
+                echo "curl is required for star update."
+                return 1
+            end
+            set --local remote_version (curl -fsSL --max-time 5 "https://raw.githubusercontent.com/clefspear/starcommand/main/VERSION" 2>/dev/null)
+            if test -z "$remote_version"
+                echo "Failed to check for updates. Visit https://github.com/clefspear/starcommand/releases"
+                return 1
+            end
+            if test "$remote_version" = "$_RKT_VERSION"
+                echo "starcommand is already up to date (v$_RKT_VERSION)."
+                return 0
+            end
+            echo "  Updating starcommand v$_RKT_VERSION → v$remote_version"
+            echo "  Changelog: https://github.com/clefspear/starcommand/blob/main/CHANGELOG.md"
+            set --local script_path (status filename)
+            if not test -f "$script_path"
+                echo "Cannot determine script path. Update manually."
+                return 1
+            end
+            set --local temp_file (mktemp 2>/dev/null; or echo /tmp/starcommand_update.$fish_pid)
+            if not curl -fsSL --max-time 10 -o "$temp_file" "https://raw.githubusercontent.com/clefspear/starcommand/main/fish/fish_greeting.fish" 2>/dev/null
+                echo "Download failed. Update aborted."
+                rm -f "$temp_file"
+                return 1
+            end
+            cp "$script_path" "$script_path.bak"
+            mv "$temp_file" "$script_path"
+            echo "Updated to v$remote_version. Open a new tab to take effect."
+
         case help -h --help
             _rkt_load_settings
             echo "star                          save current palette to favorites"
@@ -721,6 +752,8 @@ function star --description "Save / browse / preview rocket palettes"
             echo "star show H1..H6              preview a custom palette (mini rocket)"
             echo "star add  H1..H6              add a custom palette directly to favorites"
             echo "star explore [N]              browse N random palettes (default 5)"
+            echo ""
+            echo "star update                   update to the latest version"
             echo ""
             echo "star color                    show current palette preview"
             echo -n "star color theme <d|l>        terminal theme: "

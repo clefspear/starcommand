@@ -900,6 +900,53 @@ function star {
             }
         }
 
+        'update' {
+            if (-not (Get-Command curl -ErrorAction SilentlyContinue) -and -not (Get-Command Invoke-WebRequest -ErrorAction SilentlyContinue)) {
+                [Console]::WriteLine('curl or Invoke-WebRequest is required for star update.')
+                return
+            }
+            $remoteVersion = ''
+            if (Get-Command curl -ErrorAction SilentlyContinue) {
+                $remoteVersion = & curl -fsSL --max-time 5 'https://raw.githubusercontent.com/clefspear/starcommand/main/VERSION' 2>$null
+            } else {
+                try { $remoteVersion = (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/clefspear/starcommand/main/VERSION' -TimeoutSec 5 -UseBasicParsing).Content.Trim() } catch {}
+            }
+            if (-not $remoteVersion) {
+                [Console]::WriteLine('Failed to check for updates. Visit https://github.com/clefspear/starcommand/releases')
+                return
+            }
+            if ($remoteVersion -eq $script:RktVersion) {
+                [Console]::WriteLine("starcommand is already up to date (v$script:RktVersion).")
+                return
+            }
+            [Console]::WriteLine("  Updating starcommand v$script:RktVersion → v$remoteVersion")
+            [Console]::WriteLine('  Changelog: https://github.com/clefspear/starcommand/blob/main/CHANGELOG.md')
+            $scriptPath = if ($PSCommandPath) { $PSCommandPath } else { $MyInvocation.MyCommand.Source }
+            if (-not $scriptPath -or -not (Test-Path $scriptPath)) {
+                [Console]::WriteLine('Cannot determine script path. Update manually.')
+                return
+            }
+            $tempFile = [System.IO.Path]::GetTempFileName()
+            try {
+                if (Get-Command curl -ErrorAction SilentlyContinue) {
+                    & curl -fsSL --max-time 10 -o $tempFile 'https://raw.githubusercontent.com/clefspear/starcommand/main/powershell/starcommand.ps1' 2>$null
+                } else {
+                    Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/clefspear/starcommand/main/powershell/starcommand.ps1' -TimeoutSec 10 -UseBasicParsing -OutFile $tempFile
+                }
+                if (-not (Test-Path $tempFile) -or ((Get-Item $tempFile).Length -eq 0)) {
+                    [Console]::WriteLine('Download failed. Update aborted.')
+                    Remove-Item $tempFile -ErrorAction SilentlyContinue
+                    return
+                }
+                Copy-Item $scriptPath "$scriptPath.bak" -Force
+                Move-Item $tempFile $scriptPath -Force
+                [Console]::WriteLine("Updated to v$remoteVersion. Open a new tab to take effect.")
+            } catch {
+                [Console]::WriteLine('Download failed. Update aborted.')
+                Remove-Item $tempFile -ErrorAction SilentlyContinue
+            }
+        }
+
         'help' {
             Invoke-LoadSettings
             [Console]::WriteLine('star                          save current palette to favorites')
@@ -913,6 +960,8 @@ function star {
             [Console]::WriteLine('star show H1..H6              preview a custom palette (mini rocket)')
             [Console]::WriteLine('star add  H1..H6              add a custom palette directly to favorites')
             [Console]::WriteLine('star explore [N]              browse N random palettes (default 5)')
+            [Console]::WriteLine()
+            [Console]::WriteLine('star update                   update to the latest version')
             [Console]::WriteLine()
             [Console]::WriteLine('star color                    show current palette preview')
             [Console]::Write('star color theme <d|l>        terminal theme: ')

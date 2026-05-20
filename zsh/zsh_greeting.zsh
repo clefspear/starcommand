@@ -729,6 +729,39 @@ star() {
           ;;
       esac
       ;;
+    update)
+      if ! command -v curl >/dev/null 2>&1; then
+        echo "curl is required for star update."
+        return 1
+      fi
+      local remote_version=$(curl -fsSL --max-time 5 "https://raw.githubusercontent.com/clefspear/starcommand/main/VERSION" 2>/dev/null)
+      if [[ -z $remote_version ]]; then
+        echo "Failed to check for updates. Visit https://github.com/clefspear/starcommand/releases"
+        return 1
+      fi
+      if [[ "$remote_version" == "$_RKT_VERSION" ]]; then
+        echo "starcommand is already up to date (v$_RKT_VERSION)."
+        return 0
+      fi
+      echo "  Updating starcommand v$_RKT_VERSION → v$remote_version"
+      echo "  Changelog: https://github.com/clefspear/starcommand/blob/main/CHANGELOG.md"
+      local script_path="${(%):-%x}"
+      if [[ -z $script_path ]]; then
+        echo "Cannot determine script path. Update manually."
+        return 1
+      fi
+      local temp_file
+      temp_file=$(mktemp 2>/dev/null) || temp_file="/tmp/starcommand_update.$$"
+      if ! curl -fsSL --max-time 10 -o "$temp_file" "https://raw.githubusercontent.com/clefspear/starcommand/main/zsh/zsh_greeting.zsh" 2>/dev/null; then
+        echo "Download failed. Update aborted."
+        rm -f "$temp_file"
+        return 1
+      fi
+      cp "$script_path" "${script_path}.bak"
+      mv "$temp_file" "$script_path"
+      echo "Updated to v$remote_version. Open a new tab to take effect."
+      ;;
+
     help|-h|--help)
       _rkt_load_settings
       echo "star                          save current palette to favorites"
@@ -742,6 +775,8 @@ star() {
       echo "star show H1..H6              preview a custom palette (mini rocket)"
       echo "star add  H1..H6              add a custom palette directly to favorites"
       echo "star explore [N]              browse N random palettes (default 5)"
+      echo ''
+      echo "star update                   update to the latest version"
       echo ''
       echo "star color                    show current palette preview"
       printf 'star color theme <d|l>        terminal theme: '
