@@ -2,6 +2,10 @@
 
 All notable changes to starcommand are documented here.
 
+## [1.0.4] — 2026-05-20
+
+- `star update` now clears the stale nudge cache on successful update so the update prompt disappears immediately
+
 ## [1.0.3] — 2026-05-20
 
 - Bash: Fixed Memory blank on Linux due to trailing whitespace/newline in /proc/meminfo parsing

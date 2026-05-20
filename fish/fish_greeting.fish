@@ -1,4 +1,4 @@
-set -g _RKT_VERSION "1.0.3"
+set -g _RKT_VERSION "1.0.4"
 set -g _RKT_UPDATE_CACHE ~/.config/fish/rocket_update_check
 
 function _rkt_update_check_background --description "Background weekly version check"
