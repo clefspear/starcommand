@@ -2,6 +2,11 @@
 
 All notable changes to starcommand are documented here.
 
+## [1.0.3] — 2026-05-20
+
+- Bash: Fixed Memory blank on Linux due to trailing whitespace/newline in /proc/meminfo parsing
+- Bash: Fixed OS showing generic "Linux x86_64" instead of full distro string from /etc/os-release
+
 ## [1.0.2] — 2026-05-19
 
 - Self-update via `star update` with weekly background nudge when new versions are available

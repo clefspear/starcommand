@@ -2,7 +2,7 @@
 # starcommand.sh — Portable rocket greeting for Bash
 # Implements xorshift32 PRNG for cross-shell deterministic output
 
-_RKT_VERSION="1.0.2"
+_RKT_VERSION="1.0.3"
 _RKT_UPDATE_CACHE="$HOME/.config/bash/rocket_update_check"
 
 _rkt_update_check_background() {
@@ -538,7 +538,7 @@ _rkt_hw_info() {
         local cpu_type=$(grep "model name" /proc/cpuinfo 2>/dev/null | head -1 | cut -d ":" -f2)
         cpu_str="$procs_n processors, $cores_n cores, $cpu_type"
         if [[ -r /proc/meminfo ]]; then
-            local mem_kb=$(awk '/^MemTotal:/ {print $2}' /proc/meminfo)
+            local mem_kb=$(awk '/^MemTotal:/ {print $2}' /proc/meminfo | tr -d ' \n')
             if [[ -n $mem_kb ]]; then
                 mem_str=$(awk -v k="$mem_kb" 'BEGIN{printf "%.0fGB", k/1024/1024}')
             fi
@@ -547,7 +547,7 @@ _rkt_hw_info() {
             mem_str=$(free -h 2>/dev/null | awk '/^Mem:/ {print $2}')
         fi
         if [[ -r /etc/os-release ]]; then
-            local pretty=$(. /etc/os-release 2>/dev/null && echo "$PRETTY_NAME")
+            local pretty=$(grep '^PRETTY_NAME=' /etc/os-release 2>/dev/null | cut -d= -f2- | tr -d '"')
             local arch=$(uname -m)
             if [[ -n $pretty ]]; then
                 os_str="$pretty $arch"
