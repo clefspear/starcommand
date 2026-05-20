@@ -783,8 +783,6 @@ function star --description "Save / browse / preview rocket palettes"
             echo "star add  H1..H6              add a custom palette directly to favorites"
             echo "star explore [N]              browse N random palettes (default 5)"
             echo ""
-            echo "star update                   update to the latest version"
-            echo ""
             echo "star color                    show current palette preview"
             echo -n "star color theme <d|l>        terminal theme: "
             _rkt_print_option $_rkt_terminal_theme dark light
@@ -801,6 +799,8 @@ function star --description "Save / browse / preview rocket palettes"
             set_color normal
             echo
             echo "star color reset              restore defaults"
+            echo ""
+            echo "star update                   update to the latest version"
             echo ""
             echo "  Favorites: $fav_file"
             echo "  History:   $hist_file (last 100 launches)"

@@ -1005,8 +1005,6 @@ function star {
             [Console]::WriteLine('star add  H1..H6              add a custom palette directly to favorites')
             [Console]::WriteLine('star explore [N]              browse N random palettes (default 5)')
             [Console]::WriteLine()
-            [Console]::WriteLine('star update                   update to the latest version')
-            [Console]::WriteLine()
             [Console]::WriteLine('star color                    show current palette preview')
             [Console]::Write('star color theme <d|l>        terminal theme: ')
             Invoke-PrintOption $global:_rkt_terminal_theme 'dark' 'light'
@@ -1023,6 +1021,8 @@ function star {
             Set-RocketColor normal
             [Console]::WriteLine()
             [Console]::WriteLine('star color reset              restore defaults')
+            [Console]::WriteLine()
+            [Console]::WriteLine('star update                   update to the latest version')
             [Console]::WriteLine()
             [Console]::WriteLine("  Favorites: $fav_file")
             [Console]::WriteLine("  History:   $hist_file (last 100 launches)")
