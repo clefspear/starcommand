@@ -3,7 +3,7 @@
 # Deterministic rocket + starfield greeting for zsh
 # Ported from fish_greeting.fish
 
-_RKT_VERSION="1.0.7"
+_RKT_VERSION="1.0.8"
 _RKT_UPDATE_CACHE="$HOME/.config/zsh/rocket_update_check"
 
 _rkt_update_check_background() {
@@ -798,7 +798,13 @@ star() {
       fi
       local temp_file
       temp_file=$(mktemp 2>/dev/null) || temp_file="/tmp/starcommand_update.$$"
-      if ! curl -fsSL --max-time 10 -o "$temp_file" "https://github.com/clefspear/starcommand/releases/download/v${remote_version}/zsh_greeting.zsh" 2>/dev/null; then
+      local dl_url="https://raw.githubusercontent.com/clefspear/starcommand/v${remote_version}/zsh/zsh_greeting.zsh"
+      echo "Downloading: $dl_url"
+      local http_code
+      http_code=$(curl -sS -L --max-time 10 -w '%{http_code}' -o "$temp_file" "$dl_url" 2>/dev/null)
+      local curl_exit=$?
+      echo "HTTP $http_code, curl exit $curl_exit"
+      if [[ "$http_code" != "200" ]]; then
         echo "Download failed. Update aborted."
         rm -f "$temp_file"
         return 1

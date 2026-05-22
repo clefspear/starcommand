@@ -2,6 +2,11 @@
 
 All notable changes to starcommand are documented here.
 
+## [1.0.8] — 2026-05-22
+
+- Fixed `star update` download by switching from release assets to raw content
+  URLs (`raw.githubusercontent.com`) with debug output and redirect following
+
 ## [1.0.7] — 2026-05-22
 
 - Improved network adapter detection: `_rkt_net_info` now automatically skips

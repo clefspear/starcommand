@@ -3,7 +3,7 @@
 # Implements xorshift32 PRNG for cross-shell deterministic output
 # Works in PowerShell 5.1+ and PowerShell 7+
 
-$script:RktVersion = '1.0.7'
+$script:RktVersion = '1.0.8'
 $script:RktUpdateCache = Join-Path $HOME '.config/powershell/rocket_update_check'
 
 function Invoke-UpdateCheckBackground {
@@ -1004,14 +1004,21 @@ function star {
                 return
             }
             $tempFile = [System.IO.Path]::GetTempFileName()
+            $dlUrl = "https://raw.githubusercontent.com/clefspear/starcommand/v$remoteVersion/powershell/starcommand.ps1"
+            [Console]::WriteLine("Downloading: $dlUrl")
+            $httpCode = ""
             try {
-                $dlUrl = "https://github.com/clefspear/starcommand/releases/download/v$remoteVersion/starcommand.ps1"
                 if (Get-Command curl -ErrorAction SilentlyContinue) {
-                    & curl -fsSL --max-time 10 -o $tempFile $dlUrl 2>$null
+                    $result = & curl -sS -L --max-time 10 -w '%{http_code}' -o $tempFile $dlUrl 2>$null
+                    $curlExit = $LASTEXITCODE
+                    $httpCode = $result
                 } else {
-                    Invoke-WebRequest -Uri $dlUrl -TimeoutSec 10 -UseBasicParsing -OutFile $tempFile
+                    $response = Invoke-WebRequest -Uri $dlUrl -TimeoutSec 10 -UseBasicParsing -OutFile $tempFile
+                    $httpCode = $response.StatusCode
+                    $curlExit = 0
                 }
-                if (-not (Test-Path $tempFile) -or ((Get-Item $tempFile).Length -eq 0)) {
+                [Console]::WriteLine("HTTP $httpCode, curl exit $curlExit")
+                if ($httpCode -ne "200" -and $httpCode -ne 200) {
                     [Console]::WriteLine('Download failed. Update aborted.')
                     Remove-Item $tempFile -ErrorAction SilentlyContinue
                     return

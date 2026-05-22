@@ -1,5 +1,5 @@
 # Created By: Peter Azmy
-set -g _RKT_VERSION "1.0.7"
+set -g _RKT_VERSION "1.0.8"
 set -g _RKT_UPDATE_CACHE ~/.config/fish/rocket_update_check
 
 function _rkt_update_check_background --description "Background weekly version check"
@@ -772,8 +772,13 @@ function star --description "Save / browse / preview rocket palettes"
                 echo "Cannot determine script path. Update manually."
                 return 1
             end
+            set --local dl_url "https://raw.githubusercontent.com/clefspear/starcommand/v$remote_version/fish/fish_greeting.fish"
+            echo "Downloading: $dl_url"
             set --local temp_file (mktemp 2>/dev/null; or echo /tmp/starcommand_update.$fish_pid)
-            if not curl -fsSL --max-time 10 -o "$temp_file" "https://github.com/clefspear/starcommand/releases/download/v$remote_version/fish_greeting.fish" 2>/dev/null
+            set --local http_code (curl -sS -L --max-time 10 -w "%{http_code}" -o "$temp_file" "$dl_url" 2>/dev/null)
+            set --local curl_exit $status
+            echo "HTTP $http_code, curl exit $curl_exit"
+            if test "$http_code" != "200"
                 echo "Download failed. Update aborted."
                 rm -f "$temp_file"
                 return 1
