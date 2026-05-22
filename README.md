@@ -96,7 +96,7 @@ Requires bash ≥ 3.2 (macOS default), zsh ≥ 5.0, PowerShell ≥ 5.1, or fish 
 **bash:**
 
 ```bash
-curl -fsSL https://github.com/clefspear/starcommand/releases/download/v1.0.6/install.sh | bash
+curl -fsSL https://github.com/clefspear/starcommand/releases/download/v1.0.7/install.sh | bash
 ```
 
 Open a new tab. Done.
@@ -106,7 +106,7 @@ Open a new tab. Done.
 **zsh:**
 
 ```zsh
-curl -fsSL https://github.com/clefspear/starcommand/releases/download/v1.0.6/zsh_greeting.zsh | zsh
+curl -fsSL https://github.com/clefspear/starcommand/releases/download/v1.0.7/zsh_greeting.zsh | zsh
 ```
 
 Open a new tab. Done.
@@ -116,7 +116,7 @@ Open a new tab. Done.
 ```fish
 mkdir -p ~/.config/fish/functions
 curl -fSL -o ~/.config/fish/functions/fish_greeting.fish \
-  https://github.com/clefspear/starcommand/releases/download/v1.0.6/fish_greeting.fish
+  https://github.com/clefspear/starcommand/releases/download/v1.0.7/fish_greeting.fish
 ```
 
 Open a new tab. Done.
@@ -124,7 +124,7 @@ Open a new tab. Done.
 **PowerShell:**
 
 ```powershell
-iwr -useb https://github.com/clefspear/starcommand/releases/download/v1.0.6/install.ps1 | iex
+iwr -useb https://github.com/clefspear/starcommand/releases/download/v1.0.7/install.ps1 | iex
 ```
 
 Open a new tab. Done.
