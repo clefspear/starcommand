@@ -137,6 +137,30 @@ Open a new tab. Done.
 
 The `-fSL` flags on curl matter: `-f` makes curl fail on HTTP errors instead of writing the error body to disk, `-S` shows the error message, and `-L` follows redirects. Without `-f`, a typo'd URL silently saves "404: Not Found" as your shell greeting and you'll see `command not found: 404:` on every new tab until you fix it.
 
+### PowerShell network adapter selection
+
+On systems with multiple adapters, PowerShell can be told which interface to use for the greeting's network display.
+
+List available adapters:
+
+```powershell
+star net list
+```
+
+Save a preferred adapter by interface alias:
+
+```powershell
+star net use "Wi-Fi"
+```
+
+Return to automatic selection:
+
+```powershell
+star net auto
+```
+
+This preference is saved in `~/.config/powershell/rocket_settings.ps1`.
+
 ## Updating
 
 Run `star update` to fetch the latest version from GitHub Releases. You will be prompted to confirm before any files are overwritten.

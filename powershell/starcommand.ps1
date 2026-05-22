@@ -472,6 +472,7 @@ function Invoke-LoadSettings {
     $global:_rkt_terminal_theme = 'dark'
     $global:_rkt_favorite_weight = 20
     $global:_RKT_AUTO_UPDATE_CHECK = ''
+    $global:_rkt_net_interface = ''
     if (Test-Path $cfg) { . $cfg }
 }
 
@@ -485,6 +486,7 @@ function Invoke-SaveSettings {
 `$global:_rkt_terminal_theme='$($global:_rkt_terminal_theme)'
 `$global:_rkt_favorite_weight=$($global:_rkt_favorite_weight)
 `$global:_RKT_AUTO_UPDATE_CHECK='$($global:_RKT_AUTO_UPDATE_CHECK)'
+`$global:_rkt_net_interface='$($global:_rkt_net_interface)'
 "@ | Set-Content $cfg
 }
 
@@ -588,14 +590,40 @@ function Invoke-NetInfo {
     $ip = ''
     $gw = ''
 
-    if ($os_type -eq [System.PlatformID]::Win32NT) {
-        try {
-            $adapter = Get-NetIPAddress -AddressFamily IPv4 -PrefixOrigin Manual,Dhcp -ErrorAction SilentlyContinue | Where-Object { $_.IPAddress -ne '127.0.0.1' } | Select-Object -First 1
-            if ($adapter) { $ip = $adapter.IPAddress }
-            $route = Get-NetRoute -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue | Select-Object -First 1
-            if ($route) { $gw = $route.NextHop }
-        } catch {}
-    } else {
+	if ($os_type -eq [System.PlatformID]::Win32NT) {
+		try {
+			$preferredInterface = $global:_rkt_net_interface
+			if ($preferredInterface) {
+				$preferredInterface = $preferredInterface.Trim()
+			}
+
+			$adapter = $null
+			$route = $null
+
+			if ($preferredInterface) {
+				$adapter = Get-NetIPAddress -AddressFamily IPv4 -PrefixOrigin Manual,Dhcp -InterfaceAlias $preferredInterface -ErrorAction SilentlyContinue |
+					Where-Object { $_.IPAddress -ne '127.0.0.1' } |
+					Select-Object -First 1
+
+				$route = Get-NetRoute -DestinationPrefix '0.0.0.0/0' -InterfaceAlias $preferredInterface -ErrorAction SilentlyContinue |
+					Select-Object -First 1
+			}
+
+			if (-not $adapter) {
+				$adapter = Get-NetIPAddress -AddressFamily IPv4 -PrefixOrigin Manual,Dhcp -ErrorAction SilentlyContinue |
+					Where-Object { $_.IPAddress -ne '127.0.0.1' } |
+					Select-Object -First 1
+			}
+
+			if (-not $route) {
+				$route = Get-NetRoute -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue |
+					Select-Object -First 1
+			}
+
+			if ($adapter) { $ip = $adapter.IPAddress }
+			if ($route) { $gw = $route.NextHop }
+		} catch {}
+	} else {
         try {
             if ($IsMacOS -or (uname -s) -eq 'Darwin') {
                 $ip = ifconfig 2>$null | Select-String -NotMatch '127.0.0.1' | Select-String 'inet ' | Select-Object -First 1
@@ -1007,6 +1035,78 @@ function star {
             }
         }
 
+        'net' {
+            Invoke-LoadSettings
+            $sub = if ($args.Count -gt 1) { $args[1].ToLowerInvariant() } else { '' }
+
+            switch ($sub) {
+                '' {
+                    if ($global:_rkt_net_interface) {
+                        [Console]::WriteLine("Network adapter preference: $global:_rkt_net_interface")
+                    } else {
+                        [Console]::WriteLine('Network adapter preference: auto')
+                    }
+                    [Console]::WriteLine("Use 'star net list' to see adapters.")
+                    [Console]::WriteLine("Use 'star net use ""Wi-Fi""' to select one.")
+                    [Console]::WriteLine("Use 'star net auto' to clear the preference.")
+                    return
+                }
+
+                'list' {
+                    try {
+                        $adapters = Get-NetAdapter -ErrorAction SilentlyContinue |
+                            Sort-Object Status, Name -Descending |
+                            Select-Object Name, InterfaceDescription, Status
+
+                        if (-not $adapters) {
+                            [Console]::WriteLine('No adapters found.')
+                            return
+                        }
+
+                        foreach ($adapter in $adapters) {
+                            [Console]::WriteLine(("{0,-20} {1,-12} {2}" -f $adapter.Name, $adapter.Status, $adapter.InterfaceDescription))
+                        }
+                    } catch {
+                        [Console]::WriteLine('Unable to list adapters on this system.')
+                    }
+                    return
+                }
+
+                'use' {
+                    if ($args.Count -lt 3) {
+                        [Console]::WriteLine('Usage: star net use "<InterfaceAlias>"')
+                        return
+                    }
+
+                    $name = ($args[2..($args.Count - 1)] -join ' ').Trim()
+                    $exists = Get-NetAdapter -Name $name -ErrorAction SilentlyContinue
+                    if (-not $exists) {
+                        [Console]::WriteLine("Adapter not found: $name")
+                        [Console]::WriteLine("Run 'star net list' to see valid adapter names.")
+                        return
+                    }
+
+                    $global:_rkt_net_interface = $name
+                    Invoke-SaveSettings
+                    Remove-Item (Join-Path $HOME '.config/powershell/rocket_net_cache.ps1') -ErrorAction SilentlyContinue
+                    [Console]::WriteLine("Network adapter set to: $name")
+                    return
+                }
+
+                'auto' {
+                    $global:_rkt_net_interface = ''
+                    Invoke-SaveSettings
+                    Remove-Item (Join-Path $HOME '.config/powershell/rocket_net_cache.ps1') -ErrorAction SilentlyContinue
+                    [Console]::WriteLine('Network adapter selection reset to automatic.')
+                    return
+                }
+
+                default {
+                    [Console]::WriteLine('Usage: star net [list | use "<InterfaceAlias>" | auto]')
+                    return
+                }
+            }
+        }
         'help' {
             Invoke-LoadSettings
             [Console]::WriteLine("starcommand v$script:RktVersion")
@@ -1040,6 +1140,11 @@ function star {
             [Console]::WriteLine()
             [Console]::WriteLine('star color reset              restore defaults')
             [Console]::WriteLine()
+            [Console]::WriteLine('star net                      show current network adapter setting')
+            [Console]::WriteLine('star net list                 list available network adapters')
+            [Console]::WriteLine('star net use "<name>"         use a specific adapter by interface alias')
+            [Console]::WriteLine('star net auto                 restore automatic adapter selection')
+            [Console]::WriteLine()
             [Console]::WriteLine('star update                   update to the latest version')
             [Console]::WriteLine()
             [Console]::WriteLine("  Favorites: $fav_file")
@@ -1049,7 +1154,7 @@ function star {
 
         default {
             [Console]::WriteLine("Unknown subcommand: $cmd")
-            [Console]::WriteLine('Try: star, star list, star show, star add, star explore, star color, star weight, star help')
+            [Console]::WriteLine('Try: star, star list, star show, star add, star explore, star color, star weight, star net, star help')
         }
     }
 }
