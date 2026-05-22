@@ -992,7 +992,7 @@ function star {
                 [Console]::WriteLine("starcommand is already up to date (v$script:RktVersion).")
                 return
             }
-            [Console]::WriteLine("starcommand v$remoteVersion is available. Update now? [y/N]")
+            [Console]::WriteLine("starcommand v$remoteVersion is available. Update now? [y/n]")
             $response = [Console]::ReadLine()
             if ($response -ne 'y' -and $response -ne 'Y') {
                 [Console]::WriteLine('Update cancelled.')

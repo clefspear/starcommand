@@ -761,7 +761,7 @@ function star --description "Save / browse / preview rocket palettes"
                 echo "starcommand is already up to date (v$_RKT_VERSION)."
                 return 0
             end
-            echo "starcommand v$remote_version is available. Update now? [y/N]"
+            echo "starcommand v$remote_version is available. Update now? [y/n]"
             read --local response
             if test "$response" != "y" -a "$response" != "Y"
                 echo "Update cancelled."

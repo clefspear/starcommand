@@ -937,7 +937,7 @@ star() {
                 echo "starcommand is already up to date (v$_RKT_VERSION)."
                 return 0
             fi
-            echo "starcommand v$remote_version is available. Update now? [y/N]"
+            echo "starcommand v$remote_version is available. Update now? [y/n]"
             read -r _rkt_response
             if [[ "$_rkt_response" != "y" && "$_rkt_response" != "Y" ]]; then
                 echo "Update cancelled."
