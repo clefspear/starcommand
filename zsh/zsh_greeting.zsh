@@ -3,7 +3,7 @@
 # Deterministic rocket + starfield greeting for zsh
 # Ported from fish_greeting.fish
 
-_RKT_VERSION="1.0.6"
+_RKT_VERSION="1.0.7"
 _RKT_UPDATE_CACHE="$HOME/.config/zsh/rocket_update_check"
 
 _rkt_update_check_background() {
@@ -911,11 +911,19 @@ _rkt_net_info() {
   local os_type=$(uname -s)
   local ip="" gw=""
   if [[ "$os_type" == "Darwin" ]]; then
-    ip=$(ifconfig | grep -v "127.0.0.1" | grep "inet " | head -1 | cut -d " " -f2)
-    gw=$(netstat -nr | grep -E "default.*UGSc" | cut -d " " -f13)
+    ip=$(ifconfig 2>/dev/null | awk '
+      /^[a-zA-Z0-9]+:/ {
+        if (iface != "" && addr != "" && is_active == 1 && iface !~ /^(lo|lo0|docker|br-|veth|vmnet|vboxnet|utun|tun|tap|awdl|llw|anpi)/) { print addr; exit }
+        iface = $1; sub(/:$/, "", iface); addr = ""; is_active = 0
+      }
+      /inet / && !/127\.0\.0\.1/ { addr = $2 }
+      /status: active/ { is_active = 1 }
+      END { if (iface != "" && addr != "" && is_active == 1 && iface !~ /^(lo|lo0|docker|br-|veth|vmnet|vboxnet|utun|tun|tap|awdl|llw|anpi)/) print addr }
+    ')
+    gw=$(netstat -nr 2>/dev/null | awk '/^default/ {print $2; exit}')
   elif [[ "$os_type" == "Linux" ]]; then
-    ip=$(ip address show | grep -E "inet .* brd .* dynamic" | cut -d " " -f6)
-    gw=$(ip route | grep default | cut -d " " -f3)
+    ip=$(ip -o addr show 2>/dev/null | awk '$3 == "inet" && $2 !~ /^(lo|docker|br-|veth|vmnet|vboxnet|utun|tun|tap|awdl|llw|anpi)/ && $4 !~ /^127\./ { split($4, a, "/"); print a[1]; exit }')
+    gw=$(ip route 2>/dev/null | awk '/^default/ {print $3; exit}')
   fi
   printf 'typeset -g _rkt_ip=%s\n' "${(q)ip}" > "$cache"
   printf 'typeset -g _rkt_gw=%s\n' "${(q)gw}" >> "$cache"

@@ -1,5 +1,5 @@
 # Created By: Peter Azmy
-set -g _RKT_VERSION "1.0.6"
+set -g _RKT_VERSION "1.0.7"
 set -g _RKT_UPDATE_CACHE ~/.config/fish/rocket_update_check
 
 function _rkt_update_check_background --description "Background weekly version check"
@@ -898,11 +898,19 @@ function _rkt_net_info --description "Load IP/gateway into globals; cache 5min t
     set --local gw ""
 
     if test "$os_type" = "Darwin"
-        set ip (ifconfig | grep -v "127.0.0.1" | grep "inet " | head -1 | cut -d " " -f2)
-        set gw (netstat -nr | grep -E "default.*UGSc" | cut -d " " -f13)
+        set ip (ifconfig 2>/dev/null | awk '
+            /^[a-zA-Z0-9]+:/ {
+                if (iface != "" && addr != "" && is_active == 1 && iface !~ /^(lo|lo0|docker|br-|veth|vmnet|vboxnet|utun|tun|tap|awdl|llw|anpi)/) { print addr; exit }
+                iface = $1; sub(/:$/, "", iface); addr = ""; is_active = 0
+            }
+            /inet / && !/127\.0\.0\.1/ { addr = $2 }
+            /status: active/ { is_active = 1 }
+            END { if (iface != "" && addr != "" && is_active == 1 && iface !~ /^(lo|lo0|docker|br-|veth|vmnet|vboxnet|utun|tun|tap|awdl|llw|anpi)/) print addr }
+        ')
+        set gw (netstat -nr 2>/dev/null | awk '/^default/ {print $2; exit}')
     else if test "$os_type" = "Linux"
-        set ip (ip address show | grep -E "inet .* brd .* dynamic" | cut -d " " -f6)
-        set gw (ip route | grep default | cut -d " " -f3)
+        set ip (ip -o addr show 2>/dev/null | awk '$3 == "inet" && $2 !~ /^(lo|docker|br-|veth|vmnet|vboxnet|utun|tun|tap|awdl|llw|anpi)/ && $4 !~ /^127\./ { split($4, a, "/"); print a[1]; exit }')
+        set gw (ip route 2>/dev/null | awk '/^default/ {print $3; exit}')
     end
 
     printf 'set -g _rkt_ip %s\n' (string escape -- "$ip") > $cache

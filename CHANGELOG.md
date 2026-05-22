@@ -2,6 +2,13 @@
 
 All notable changes to starcommand are documented here.
 
+## [1.0.7] — 2026-05-22
+
+- Improved network adapter detection: `_rkt_net_info` now automatically skips
+  loopback, Docker/bridge, VM, VPN tunnel, and Apple internal interfaces,
+  selecting the first real active interface with a valid IP address — no
+  configuration required
+
 ## [1.0.6] — 2026-05-20
 
 - `star update` now pulls from tagged GitHub Releases for immutability

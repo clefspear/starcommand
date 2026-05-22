@@ -3,7 +3,7 @@
 # Implements xorshift32 PRNG for cross-shell deterministic output
 # Works in PowerShell 5.1+ and PowerShell 7+
 
-$script:RktVersion = '1.0.6'
+$script:RktVersion = '1.0.7'
 $script:RktUpdateCache = Join-Path $HOME '.config/powershell/rocket_update_check'
 
 function Invoke-UpdateCheckBackground {
@@ -588,25 +588,44 @@ function Invoke-NetInfo {
     $ip = ''
     $gw = ''
 
-    if ($os_type -eq [System.PlatformID]::Win32NT) {
+    if ($os_type -eq [System.PlatformID]::Win32NT -and (Get-Command Get-NetAdapter -ErrorAction SilentlyContinue)) {
         try {
-            $adapter = Get-NetIPAddress -AddressFamily IPv4 -PrefixOrigin Manual,Dhcp -ErrorAction SilentlyContinue | Where-Object { $_.IPAddress -ne '127.0.0.1' } | Select-Object -First 1
-            if ($adapter) { $ip = $adapter.IPAddress }
-            $route = Get-NetRoute -DestinationPrefix '0.0.0.0/0' -ErrorAction SilentlyContinue | Select-Object -First 1
-            if ($route) { $gw = $route.NextHop }
+            $skipPattern = '^(lo|Loopback|docker|br-|veth|vmnet|vboxnet|utun|tun|tap|awdl|llw|anpi)'
+            $adapters = Get-NetAdapter -ErrorAction SilentlyContinue | Where-Object { $_.Status -eq 'Up' }
+            foreach ($adapter in $adapters) {
+                if ($adapter.Name -match $skipPattern -or
+                    $adapter.InterfaceDescription -match 'Loopback|Virtual|VMware|VirtualBox|Hyper-V|Docker') { continue }
+                $addr = Get-NetIPAddress -InterfaceIndex $adapter.ifIndex -AddressFamily IPv4 -ErrorAction SilentlyContinue |
+                    Where-Object { $_.IPAddress -ne '127.0.0.1' } | Select-Object -First 1
+                if ($addr) {
+                    $ip = $addr.IPAddress
+                    $route = Get-NetRoute -DestinationPrefix '0.0.0.0/0' -InterfaceIndex $adapter.ifIndex -ErrorAction SilentlyContinue |
+                        Select-Object -First 1
+                    if ($route) { $gw = $route.NextHop }
+                    break
+                }
+            }
         } catch {}
     } else {
         try {
             if ($IsMacOS -or (uname -s) -eq 'Darwin') {
-                $ip = ifconfig 2>$null | Select-String -NotMatch '127.0.0.1' | Select-String 'inet ' | Select-Object -First 1
-                if ($ip) { $ip = ($ip.ToString() -split '\s+')[1] }
-                $gw = netstat -nr 2>$null | Select-String 'default.*UGSc' | Select-Object -First 1
-                if ($gw) { $gw = ($gw.ToString() -split '\s+')[-1] }
+                $ip = ifconfig 2>$null | awk '
+                    /^[a-zA-Z0-9]+:/ {
+                        if (iface != "" && addr != "" && is_active == 1 && iface !~ /^(lo|lo0|docker|br-|veth|vmnet|vboxnet|utun|tun|tap|awdl|llw|anpi)/) { print addr; exit }
+                        iface = $1; sub(/:$/, "", iface); addr = ""; is_active = 0
+                    }
+                    /inet / && !/127\.0\.0\.1/ { addr = $2 }
+                    /status: active/ { is_active = 1 }
+                    END { if (iface != "" && addr != "" && is_active == 1 && iface !~ /^(lo|lo0|docker|br-|veth|vmnet|vboxnet|utun|tun|tap|awdl|llw|anpi)/) print addr }
+                '
+                if ($ip) { $ip = $ip.Trim() }
+                $gw = netstat -nr 2>$null | awk '/^default/ {print $2; exit}'
+                if ($gw) { $gw = $gw.Trim() }
             } else {
-                $ip = ip address show 2>$null | Select-String 'inet .* brd .* dynamic' | Select-Object -First 1
-                if ($ip) { $ip = (($ip.ToString() -split '\s+')[1] -split '/')[0] }
-                $gw = ip route 2>$null | Select-String 'default' | Select-Object -First 1
-                if ($gw) { $gw = ($gw.ToString() -split '\s+')[2] }
+                $ip = ip -o addr show 2>$null | awk '$3 == "inet" && $2 !~ /^(lo|docker|br-|veth|vmnet|vboxnet|utun|tun|tap|awdl|llw|anpi)/ && $4 !~ /^127\./ { split($4, a, "/"); print a[1]; exit }'
+                if ($ip) { $ip = $ip.Trim() }
+                $gw = ip route 2>$null | awk '/^default/ {print $3; exit}'
+                if ($gw) { $gw = $gw.Trim() }
             }
         } catch {}
     }
