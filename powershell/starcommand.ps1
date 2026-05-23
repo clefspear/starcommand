@@ -3,7 +3,7 @@
 # Implements xorshift32 PRNG for cross-shell deterministic output
 # Works in PowerShell 5.1+ and PowerShell 7+
 
-$script:RktVersion = '1.1.0'
+$script:RktVersion = '1.2.0'
 $script:RktUpdateCache = Join-Path $HOME '.config/powershell/rocket_update_check'
 
 function Invoke-UpdateCheckBackground {
@@ -28,6 +28,10 @@ function Invoke-UpdateCheckBackground {
         }
     }
 
+    Invoke-LoadSettings
+    $branch = 'main'
+    if ($global:_rkt_channel -eq 'cantaloupe') { $branch = 'cantaloupe' }
+    $url = "https://raw.githubusercontent.com/clefspear/starcommand/$branch/VERSION"
     $null = Start-Job -ScriptBlock {
         param($url, $cacheFile, $now)
         try {
@@ -38,7 +42,7 @@ function Invoke-UpdateCheckBackground {
             }
             "$now`n$v" | Out-File $cacheFile -Encoding ascii -Force
         } catch {}
-    } -ArgumentList 'https://raw.githubusercontent.com/clefspear/starcommand/main/VERSION', $script:RktUpdateCache, $now
+    } -ArgumentList $url, $script:RktUpdateCache, $now
 }
 
 function Invoke-UpdateCheckNudge {
@@ -471,6 +475,7 @@ function Invoke-LoadSettings {
     $global:_rkt_favorite_star_mode = 'gold'
     $global:_rkt_terminal_theme = 'dark'
     $global:_rkt_favorite_weight = 20
+    $global:_rkt_channel = 'main'
     $global:_RKT_AUTO_UPDATE_CHECK = ''
     if (Test-Path $cfg) { . $cfg }
 }
@@ -484,6 +489,7 @@ function Invoke-SaveSettings {
 `$global:_rkt_favorite_star_mode='$($global:_rkt_favorite_star_mode)'
 `$global:_rkt_terminal_theme='$($global:_rkt_terminal_theme)'
 `$global:_rkt_favorite_weight=$($global:_rkt_favorite_weight)
+`$global:_rkt_channel='$($global:_rkt_channel)'
 `$global:_RKT_AUTO_UPDATE_CHECK='$($global:_RKT_AUTO_UPDATE_CHECK)'
 "@ | Set-Content $cfg
 }
@@ -974,15 +980,33 @@ function star {
         }
 
         'update' {
+            if ($args.Count -ge 2 -and $args[1] -eq 'cantaloupe') {
+                Invoke-LoadSettings
+                $global:_rkt_channel = 'cantaloupe'
+                Invoke-SaveSettings
+                [Console]::WriteLine("Switched to cantaloupe channel. Use 'star update' to pull the latest cantaloupe build.")
+                return
+            }
+            if ($args.Count -ge 2 -and $args[1] -eq 'stable') {
+                Invoke-LoadSettings
+                $global:_rkt_channel = 'main'
+                Invoke-SaveSettings
+                [Console]::WriteLine('Switched to the stable channel.')
+                return
+            }
             if (-not (Get-Command curl.exe -ErrorAction SilentlyContinue) -and -not (Get-Command Invoke-WebRequest -ErrorAction SilentlyContinue)) {
                 [Console]::WriteLine('curl or Invoke-WebRequest is required for star update.')
                 return
             }
+            Invoke-LoadSettings
+            $branch = 'main'
+            if ($global:_rkt_channel -eq 'cantaloupe') { $branch = 'cantaloupe' }
             $remoteVersion = ''
+            $versionUrl = "https://raw.githubusercontent.com/clefspear/starcommand/$branch/VERSION"
             if (Get-Command curl.exe -ErrorAction SilentlyContinue) {
-                $remoteVersion = & curl.exe -fsSL --ssl-no-revoke --max-time 5 'https://raw.githubusercontent.com/clefspear/starcommand/main/VERSION' 2>$null
+                $remoteVersion = & curl.exe -fsSL --ssl-no-revoke --max-time 5 $versionUrl 2>$null
             } else {
-                try { $remoteVersion = (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/clefspear/starcommand/main/VERSION' -TimeoutSec 5 -UseBasicParsing).Content.Trim() } catch {}
+                try { $remoteVersion = (Invoke-WebRequest -Uri $versionUrl -TimeoutSec 5 -UseBasicParsing).Content.Trim() } catch {}
             }
             if (-not $remoteVersion) {
                 [Console]::WriteLine('Failed to check for updates. Visit https://github.com/clefspear/starcommand/releases')
@@ -1004,7 +1028,9 @@ function star {
                 return
             }
             $tempFile = [System.IO.Path]::GetTempFileName()
-            $dlUrl = "https://raw.githubusercontent.com/clefspear/starcommand/v$remoteVersion/powershell/starcommand.ps1"
+            $tag = $remoteVersion
+            if ($branch -eq 'cantaloupe') { $tag = "$remoteVersion-cantaloupe" }
+            $dlUrl = "https://raw.githubusercontent.com/clefspear/starcommand/v$tag/powershell/starcommand.ps1"
             [Console]::WriteLine("Downloading: $dlUrl")
             $httpCode = ""
             try {
@@ -1035,7 +1061,11 @@ function star {
 
         'help' {
             Invoke-LoadSettings
-            [Console]::WriteLine("starcommand v$script:RktVersion")
+            if ($global:_rkt_channel -eq 'cantaloupe') {
+                [Console]::WriteLine("starcommand v$script:RktVersion-cantaloupe")
+            } else {
+                [Console]::WriteLine("starcommand v$script:RktVersion")
+            }
             [Console]::WriteLine()
             [Console]::WriteLine('star                          save current palette to favorites')
             [Console]::WriteLine('star list                     show all favorites')
@@ -1067,6 +1097,9 @@ function star {
             [Console]::WriteLine('star color reset              restore defaults')
             [Console]::WriteLine()
             [Console]::WriteLine('star update                   update to the latest version')
+            if ($global:_rkt_channel -eq 'cantaloupe') {
+                [Console]::WriteLine('star update stable            switch back to the stable channel')
+            }
             [Console]::WriteLine()
             [Console]::WriteLine("  Favorites: $fav_file")
             [Console]::WriteLine("  History:   $hist_file (last 100 launches)")
