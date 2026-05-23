@@ -419,7 +419,7 @@ function Invoke-PrintStarRow {
     if ($Prefix) {
         [Console]::Write($Prefix)
     } else {
-        [Console]::Write("{0,3}. " -f $N)
+        [Console]::Write("{0,4}. " -f $N)
     }
     Set-RocketColor $cs[0]; [Console]::Write('★ ')
     Set-RocketColor $cs[1]; [Console]::Write('★ ')
@@ -788,7 +788,7 @@ function star {
                 if ($displayN -eq 1) {
                     Invoke-PrintStarRow $displayN $lines[$i] '(Current) 1. '
                 } else {
-                    Invoke-PrintStarRow $displayN $lines[$i] ("        {0,3}. " -f $displayN)
+                    Invoke-PrintStarRow $displayN $lines[$i] ("       {0,4}. " -f $displayN)
                 }
                 $shown++
             }
@@ -863,115 +863,84 @@ function star {
             }
 
             $hasRockets = $false
-            $rocketTasks = $null
-            if ($n -ge 800) {
+            $rktAlive = $false
+            $rktCol = 0
+            $rktDir = 1
+            $rktFrame = 0
+            $rktSubframe = 0
+            $rktFlameIdx = 0
+            $rktNextLaunch = 125
+            if ($n -ge 250) {
                 $hasRockets = $true
                 Invoke-LoadSettings
-                $rocketTasks = [System.Collections.Generic.List[System.Threading.Tasks.Task]]::new()
             }
+            $rktAnsi = 97
+            if ($global:_rkt_terminal_theme -eq 'light') { $rktAnsi = 30 }
 
             [Console]::WriteLine()
-            try {
-                for ($i = 1; $i -le $n; $i++) {
-                    $p = Invoke-GenRocketPalette
-                    [Console]::Write("{0,3}. " -f $i)
+            for ($i = 1; $i -le $n; $i++) {
+                if ($hasRockets -and $rktAlive -and $rktSubframe -eq 0) {
+                    $rktFlameIdx = Get-PrngRange 0 1
+                }
+                $p = Invoke-GenRocketPalette
+                [Console]::Write("{0,4}. " -f $i)
+                if ($hasRockets -and $rktAlive) {
+                    $rktRow = ''
+                    if ($rktSubframe -eq 0) {
+                        $rktRow = ' ^ '
+                    } elseif ($rktSubframe -eq 1) {
+                        $rktRow = '/_\'
+                    } else {
+                        if ($rktFlameIdx -eq 0) { $rktRow = ' v ' } else { $rktRow = ' * ' }
+                    }
+                    for ($s = 0; $s -lt 6; $s++) {
+                        if ($s -eq $rktCol) {
+                            [Console]::Write("{0}[0m{0}[{1}m{2}{0}[0m" -f $global:Esc, $rktAnsi, $rktRow)
+                        } else {
+                            Set-RocketColor $p[$s]; [Console]::Write('★')
+                            if ($s -lt 5) {
+                                $skipSpace = ($s -eq $rktCol - 1) -or ($rktCol -eq 0 -and $s -eq 1)
+                                if (-not $skipSpace) { [Console]::Write(' ') }
+                            }
+                        }
+                    }
+                } else {
                     Set-RocketColor $p[0]; [Console]::Write('★ ')
                     Set-RocketColor $p[1]; [Console]::Write('★ ')
                     Set-RocketColor $p[2]; [Console]::Write('★ ')
                     Set-RocketColor $p[3]; [Console]::Write('★ ')
                     Set-RocketColor $p[4]; [Console]::Write('★ ')
                     Set-RocketColor $p[5]; [Console]::Write('★')
-                    Set-RocketColor normal
-                    [Console]::WriteLine("  $($p[0]) $($p[1]) $($p[2]) $($p[3]) $($p[4]) $($p[5])")
-
-                    if ($hasRockets -and ($i % 150) -eq 0) {
-                        $prefix = "{0,3}. " -f $i
-                        $prefixLen = $prefix.Length
-                        $colIdx = Get-PrngRange 0 5
-                        $termCol = $prefixLen + 1 + $colIdx * 2
-                        $termRows = [Console]::WindowHeight
-                        $termCols = [Console]::WindowWidth
-                        $startRow = [Math]::Max(1, $termRows - 1)
-                        $dir = Get-PrngRange 0 1
-                        if ($dir -eq 0) { $dir = -1 }
-
-                        $r = 255; $g = 255; $b = 255
-                        if ($global:_rkt_terminal_theme -eq 'light') { $r = 51; $g = 51; $b = 51 }
-
-                        $cr = $r; $cg = $g; $cb = $b
-                        $ccol = $termCol; $cdir = $dir; $crow = $startRow; $ctw = $termCols
-
-                        $sb = {
-                            $row = $crow; $col = $ccol; $d = $cdir; $tw = $ctw
-                            $r = $cr; $g = $cg; $b = $cb
-                            $moved = $false
-
-                            if ($d -eq 1) {
-                                [Console]::Write("`e[s`e[$row;${col}H /|`e[$($row+1);${col}H/ |`e[u")
-                            } else {
-                                [Console]::Write("`e[s`e[$row;${col}H|\ `e[$($row+1);${col}H| \`e[u")
-                            }
-
-                            while ($row -gt 1) {
-                                Start-Sleep -Milliseconds 300
-
-                                if ($moved) {
-                                    if ($d -eq 1) {
-                                        [Console]::Write("`e[s`e[$row;${col}H   `e[$($row+1);${col}H   `e[$($row+2);$($col+2)]H `e[u")
-                                    } else {
-                                        [Console]::Write("`e[s`e[$row;${col}H   `e[$($row+1);${col}H   `e[$($row+2);${col}H `e[u")
-                                    }
-                                } else {
-                                    [Console]::Write("`e[s`e[$row;${col}H   `e[$($row+1);${col}H   `e[u")
-                                }
-
-                                $nr = $row - 1
-                                $nc = $col + $d
-                                if ($nc -lt 2 -or ($nc + 2) -ge $tw) {
-                                    $d = -$d
-                                    $nc = $col + $d
-                                }
-                                $row = $nr; $col = $nc
-                                $moved = $true
-
-                                if ($d -eq 1) {
-                                    [Console]::Write("`e[s`e[$row;${col}H /|`e[$($row+1);${col}H/ |`e[u")
-                                } else {
-                                    [Console]::Write("`e[s`e[$row;${col}H|\ `e[$($row+1);${col}H| \`e[u")
-                                }
-
-                                $nf = Get-PrngRange 3 4
-                                for ($fi = 0; $fi -lt $nf; $fi++) {
-                                    Start-Sleep -Milliseconds 25
-                                    $rb = Get-PrngRange 0 2
-                                    $ch = @('^', '*', 'v')[$rb]
-                                    if ($d -eq 1) {
-                                        [Console]::Write("`e[s`e[$($row+2);$($col+2)]H`e[38;2;${r};${g};${b}m${ch}`e[m`e[u")
-                                    } else {
-                                        [Console]::Write("`e[s`e[$($row+2);${col}H`e[38;2;${r};${g};${b}m${ch}`e[m`e[u")
-                                    }
-                                }
-                            }
-                            if ($d -eq 1) {
-                                [Console]::Write("`e[s`e[1;${col}H   `e[2;${col}H   `e[3;$($col+2)]H `e[u")
-                            } else {
-                                [Console]::Write("`e[s`e[1;${col}H   `e[2;${col}H   `e[3;${col}H `e[u")
-                            }
-                        }.GetNewClosure()
-                        $task = [System.Threading.Tasks.Task]::Run($sb)
-                        $rocketTasks.Add($task)
-                    }
                 }
-            } finally {
+                Set-RocketColor normal
+                [Console]::WriteLine("  $($p[0]) $($p[1]) $($p[2]) $($p[3]) $($p[4]) $($p[5])")
+                $true
                 if ($hasRockets) {
-                    [Console]::Write("`e[?25h")
-                    Set-RocketColor normal
-                    if ($rocketTasks) {
-                        foreach ($t in $rocketTasks) {
-                            if ($t -and (-not $t.IsCompleted)) {
-                                $null = $t
+                    if ($rktAlive) {
+                        $rktSubframe++
+                        if ($rktSubframe -ge 3) {
+                            $rktSubframe = 0
+                            $rktFrame++
+                            if ($rktFrame -ge 24) {
+                                $rktAlive = $false
+                                $rktNextLaunch = $i + 200
+                            } else {
+                                $rktNc = $rktCol + $rktDir
+                                if ($rktNc -lt 0 -or $rktNc -gt 4) {
+                                    $rktDir = -$rktDir
+                                    $rktNc = $rktCol + $rktDir
+                                }
+                                $rktCol = $rktNc
                             }
                         }
+                    } elseif ($i -ge $rktNextLaunch -and $n - $i -ge 72) {
+                        $rktAlive = $true
+                        $rktCol = 3
+                        $rktFrame = 0
+                        $rktSubframe = 0
+                        $rktFlameIdx = 0
+                        $rktDir = Get-PrngRange 0 1
+                        if ($rktDir -eq 0) { $rktDir = -1 }
                     }
                 }
             }

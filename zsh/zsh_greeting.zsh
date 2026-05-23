@@ -295,7 +295,7 @@ _rocket_print_star_row() {
   if (( $# >= 3 )); then
     printf '%s' "$3"
   else
-    printf "%3d. " "$n"
+        printf "%4d. " "$n"
   fi
   _rkt_set_color "$cs[1]"; printf '★ '
   _rkt_set_color "$cs[2]"; printf '★ '
@@ -479,107 +479,7 @@ _star_preview_palette() {
   typeset -g -a _rocket_stars=("${saved_stars[@]}")
 }
 
-# ── Explore animation ─────────────────────────────────────────────────────────
 
-typeset -g -a _RKT_ROCKET_PIDS=()
-
-_rkt_rocket_cleanup() {
-  emulate -L zsh
-  local pid
-  for pid in "${_RKT_ROCKET_PIDS[@]}"; do
-    kill "$pid" 2>/dev/null
-  done
-  _RKT_ROCKET_PIDS=()
-  _rkt_set_color normal
-  printf '\e[?25h'
-}
-
-_rkt_launch_rocket() {
-  emulate -L zsh
-  local i=$1
-  local prefix=$(printf "%3d. " "$i")
-  local prefix_len=${#prefix}
-  _rkt_prng_range 0 5; local col_idx=$_RKT_PRNG_RET
-  local term_col=$((prefix_len + 1 + col_idx * 2))
-  local term_rows=$(tput lines 2>/dev/null || echo 24)
-  local term_cols=$(tput cols 2>/dev/null || echo 80)
-  local start_row=$((term_rows > 2 ? term_rows - 1 : term_rows))
-  _rkt_prng_range 0 1
-  local dir=$_RKT_PRNG_RET
-  [[ $dir -eq 0 ]] && dir=-1
-
-  local rhex="FFFFFF" red=255 green=255 blue=255
-  if [[ "$_rkt_terminal_theme" == "light" ]]; then
-    rhex="333333"; red=51; green=51; blue=51
-  fi
-
-  (
-    local row=$start_row
-    local col=$term_col
-    local d=$dir
-    local moved=false
-
-    if (( d == 1 )); then
-      printf '\e[s\e[%d;%dH /|\e[%d;%dH/ |\e[u' "$row" "$col" "$((row+1))" "$col"
-    else
-      printf '\e[s\e[%d;%dH|\\ \e[%d;%dH| \\\e[u' "$row" "$col" "$((row+1))" "$col"
-    fi
-
-    while (( row > 1 )); do
-      sleep 0.3
-
-      if $moved; then
-        if (( d == 1 )); then
-          printf '\e[s\e[%d;%dH   \e[%d;%dH   \e[%d;%dH \e[u' "$row" "$col" "$((row+1))" "$col" "$((row+2))" "$((col+2))"
-        else
-          printf '\e[s\e[%d;%dH   \e[%d;%dH   \e[%d;%dH \e[u' "$row" "$col" "$((row+1))" "$col" "$((row+2))" "$col"
-        fi
-      else
-        printf '\e[s\e[%d;%dH   \e[%d;%dH   \e[u' "$row" "$col" "$((row+1))" "$col"
-      fi
-
-      local nr=$((row - 1))
-      local nc=$((col + d))
-      if (( nc < 2 || nc + 2 >= term_cols )); then
-        d=$(( -d ))
-        nc=$((col + d))
-      fi
-      row=$nr; col=$nc
-      moved=true
-
-      if (( d == 1 )); then
-        printf '\e[s\e[%d;%dH /|\e[%d;%dH/ |\e[u' "$row" "$col" "$((row+1))" "$col"
-      else
-        printf '\e[s\e[%d;%dH|\\ \e[%d;%dH| \\\e[u' "$row" "$col" "$((row+1))" "$col"
-      fi
-
-      local nf=3
-      _rkt_prng_range 3 4; nf=$_RKT_PRNG_RET
-      local fi
-      for ((fi=0; fi<nf; fi++)); do
-        sleep 0.025
-        local rb ch
-        rb=$(od -An -N1 -tu1 /dev/urandom 2>/dev/null | tr -d ' ')
-        rb=$(( rb % 3 ))
-        case $rb in
-          0) ch='^' ;; 1) ch='*' ;; *) ch='v' ;;
-        esac
-        if (( d == 1 )); then
-          printf '\e[s\e[%d;%dH\e[38;2;%d;%d;%dm%s\e[m\e[u' "$((row+2))" "$((col+2))" "$red" "$green" "$blue" "$ch"
-        else
-          printf '\e[s\e[%d;%dH\e[38;2;%d;%d;%dm%s\e[m\e[u' "$((row+2))" "$col" "$red" "$green" "$blue" "$ch"
-        fi
-      done
-    done
-
-    if (( d == 1 )); then
-      printf '\e[s\e[%d;%dH   \e[%d;%dH   \e[%d;%dH \e[u' 1 "$col" 2 "$col" 3 "$((col+2))"
-    else
-      printf '\e[s\e[%d;%dH   \e[%d;%dH   \e[%d;%dH \e[u' 1 "$col" 2 "$col" 3 "$col"
-    fi
-  ) &
-  _RKT_ROCKET_PIDS+=($!)
-}
 
 star() {
   emulate -L zsh
@@ -695,7 +595,7 @@ star() {
         if (( display_n == 1 )); then
           _rocket_print_star_row "$display_n" "${lines[$i]}" "(Current) 1. "
         else
-          _rocket_print_star_row "$display_n" "${lines[$i]}" "$(printf '        %3d. ' "$display_n")"
+          _rocket_print_star_row "$display_n" "${lines[$i]}" "$(printf '       %4d. ' "$display_n")"
         fi
         (( shown++ ))
       done
@@ -774,36 +674,91 @@ star() {
         n="$2"
       fi
       local has_rockets=false
-      if (( n >= 800 )); then
+      local _rkt_alive=false _rkt_col=0 _rkt_dir=1 _rkt_frame=0 _rkt_subframe=0 _rkt_flame_idx=0 _rkt_next_launch=125
+      if (( n >= 250 )); then
         has_rockets=true
         _rkt_load_settings
-        typeset -g -a _RKT_ROCKET_PIDS=()
-        trap '_rkt_rocket_cleanup; trap - INT; printf "\e[?25h"; kill -INT $$' INT
       fi
+      local _rkt_ansi=97
+      [[ "$_rkt_terminal_theme" == light ]] && _rkt_ansi=30
       echo ''
       for ((i=1; i<=n; i++)); do
         _rkt_prng_seed
+        if $has_rockets && $_rkt_alive && (( _rkt_subframe == 0 )); then
+          _rkt_prng_range 0 1
+          _rkt_flame_idx=$_RKT_PRNG_RET
+        fi
         local -a p=($(_gen_rocket_palette))
-        printf "%3d. " "$i"
-        _rkt_set_color "$p[1]"; printf '★ '
-        _rkt_set_color "$p[2]"; printf '★ '
-        _rkt_set_color "$p[3]"; printf '★ '
-        _rkt_set_color "$p[4]"; printf '★ '
-        _rkt_set_color "$p[5]"; printf '★ '
-        _rkt_set_color "$p[6]"; printf '★'
+        printf "%4d. " "$i"
+        if $has_rockets && $_rkt_alive; then
+          local _rkt_row
+          if (( _rkt_subframe == 0 )); then
+            _rkt_row=" ^ "
+          elif (( _rkt_subframe == 1 )); then
+            _rkt_row="/_\\"
+          else
+            if (( _rkt_flame_idx == 0 )); then
+              _rkt_row=" v "
+            else
+              _rkt_row=" * "
+            fi
+          fi
+          local s
+          for ((s=0; s<6; s++)); do
+            if (( s == _rkt_col )); then
+              printf '\033[0m\033[%sm%s\033[0m' "$_rkt_ansi" "$_rkt_row"
+            else
+              _rkt_set_color "$p[s+1]"; printf '★'
+              if (( s < 5 )); then
+                if (( s != _rkt_col - 1 && !(_rkt_col == 0 && s == 1) )); then
+                  printf ' '
+                fi
+              fi
+            fi
+          done
+        else
+          _rkt_set_color "$p[1]"; printf '★ '
+          _rkt_set_color "$p[2]"; printf '★ '
+          _rkt_set_color "$p[3]"; printf '★ '
+          _rkt_set_color "$p[4]"; printf '★ '
+          _rkt_set_color "$p[5]"; printf '★ '
+          _rkt_set_color "$p[6]"; printf '★'
+        fi
         _rkt_set_color normal
         printf '  %s %s %s %s %s %s\n' "${p[@]}"
-        if $has_rockets && (( i % 150 == 0 )); then
-          _rkt_launch_rocket "$i"
+        true
+        if $has_rockets; then
+          if $_rkt_alive; then
+            ((_rkt_subframe++))
+            if (( _rkt_subframe >= 3 )); then
+              _rkt_subframe=0
+              ((_rkt_frame++))
+              if (( _rkt_frame >= 24 )); then
+                _rkt_alive=false
+                _rkt_next_launch=$(( i + 200 ))
+              else
+                local _rkt_nc=$((_rkt_col + _rkt_dir))
+                if (( _rkt_nc < 0 || _rkt_nc > 4 )); then
+                  _rkt_dir=$(( -_rkt_dir ))
+                  _rkt_nc=$((_rkt_col + _rkt_dir))
+                fi
+                _rkt_col=$_rkt_nc
+              fi
+            fi
+          elif (( i >= _rkt_next_launch && n - i >= 72 )); then
+            _rkt_alive=true
+            _rkt_col=3
+            _rkt_frame=0
+            _rkt_subframe=0
+            _rkt_flame_idx=0
+            _rkt_prng_range 0 1
+            _rkt_dir=$(( _RKT_PRNG_RET == 0 ? -1 : 1 ))
+          fi
         fi
       done
-      if $has_rockets; then
-        trap - INT
-        _rkt_rocket_cleanup
-      fi
       echo ''
-      echo "  star show <h1>..<h6>   preview a full rocket"
-      echo "  star add  <h1>..<h6> [<h1>..<h6> ...]   save palette(s) to favorites"
+      echo '  star show <h1>..<h6>   preview a full rocket'
+      echo '  star add  <h1>..<h6> [<h1>..<h6> ...]   save palette(s) to favorites'
       ;;
     weight|w)
       _rkt_load_settings

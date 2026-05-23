@@ -64,17 +64,19 @@ But the kicker: it's all reproducible. Save a palette to favorites and you've sa
 |                                 |                                                 |
 |---------------------------------|-------------------------------------------------|
 |`star color`                     |Show current palette + rocket preview            |
-|`star color theme <dark\|light>`  |Match your terminal background                   |
+|`star color theme <dark\|light>`  |Match your terminal background; rocket is white by default, black on light terminals|
 |`star color random <white\|neon>` |Star color on random rockets                     |
 |`star color favorite <gold\|neon>`|Star color on favorite rockets                   |
 |`star color reset`               |Restore defaults                                 |
 |`star weight <0-100>`            |Ratio of favorites to random rockets (default 20)|
 
-Light-mode terminal? Run this once so stars stay readable:
+Light-mode terminal? Run this once so stars stay readable and the rocket appears black instead of white:
 
 ```sh
 star color theme light
 ```
+
+The rocket is white by default (`_rkt_terminal_theme=dark`). The alternate theme renders it black (`_rkt_terminal_theme=light`) so it stays visible on light terminals.
 
 -----
 
