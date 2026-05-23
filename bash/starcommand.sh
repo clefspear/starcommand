@@ -3,7 +3,7 @@
 # starcommand.sh — Portable rocket greeting for Bash
 # Implements xorshift32 PRNG for cross-shell deterministic output
 
-_RKT_VERSION="1.0.9"
+_RKT_VERSION="1.0.10"
 _RKT_UPDATE_CACHE="$HOME/.config/bash/rocket_update_check"
 
 _rkt_update_check_background() {

@@ -2,6 +2,14 @@
 
 All notable changes to starcommand are documented here.
 
+## [1.0.10] — 2026-05-23
+
+- Fixed `star update` broken on Windows PowerShell 5.1: `curl` is a built-in
+  alias for `Invoke-WebRequest` in PS 5.1, so `& curl -fsSL ...` resolved to
+  the cmdlet and rejected POSIX flags. Changed to `& curl.exe` which bypasses
+  alias resolution and invokes the real binary shipped with Windows 10 1803+.
+  Falls back to `Invoke-WebRequest` if `curl.exe` is absent.
+
 ## [1.0.9] — 2026-05-23
 
 - Fixed `star explore` returning identical palettes on Ubuntu (bash & zsh):

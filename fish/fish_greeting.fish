@@ -1,5 +1,5 @@
 # Created By: Peter Azmy
-set -g _RKT_VERSION "1.0.8"
+set -g _RKT_VERSION "1.0.10"
 set -g _RKT_UPDATE_CACHE ~/.config/fish/rocket_update_check
 
 function _rkt_update_check_background --description "Background weekly version check"

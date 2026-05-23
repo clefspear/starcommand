@@ -3,7 +3,7 @@
 # Implements xorshift32 PRNG for cross-shell deterministic output
 # Works in PowerShell 5.1+ and PowerShell 7+
 
-$script:RktVersion = '1.0.8'
+$script:RktVersion = '1.0.10'
 $script:RktUpdateCache = Join-Path $HOME '.config/powershell/rocket_update_check'
 
 function Invoke-UpdateCheckBackground {
@@ -31,8 +31,8 @@ function Invoke-UpdateCheckBackground {
     $null = Start-Job -ScriptBlock {
         param($url, $cacheFile, $now)
         try {
-            if (Get-Command curl -ErrorAction SilentlyContinue) {
-                $v = & curl -fsSL --max-time 3 $url 2>$null
+            if (Get-Command curl.exe -ErrorAction SilentlyContinue) {
+                $v = & curl.exe -fsSL --max-time 3 $url 2>$null
             } else {
                 $v = (Invoke-WebRequest -Uri $url -TimeoutSec 3 -UseBasicParsing).Content.Trim()
             }
@@ -974,13 +974,13 @@ function star {
         }
 
         'update' {
-            if (-not (Get-Command curl -ErrorAction SilentlyContinue) -and -not (Get-Command Invoke-WebRequest -ErrorAction SilentlyContinue)) {
+            if (-not (Get-Command curl.exe -ErrorAction SilentlyContinue) -and -not (Get-Command Invoke-WebRequest -ErrorAction SilentlyContinue)) {
                 [Console]::WriteLine('curl or Invoke-WebRequest is required for star update.')
                 return
             }
             $remoteVersion = ''
-            if (Get-Command curl -ErrorAction SilentlyContinue) {
-                $remoteVersion = & curl -fsSL --max-time 5 'https://raw.githubusercontent.com/clefspear/starcommand/main/VERSION' 2>$null
+            if (Get-Command curl.exe -ErrorAction SilentlyContinue) {
+                $remoteVersion = & curl.exe -fsSL --max-time 5 'https://raw.githubusercontent.com/clefspear/starcommand/main/VERSION' 2>$null
             } else {
                 try { $remoteVersion = (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/clefspear/starcommand/main/VERSION' -TimeoutSec 5 -UseBasicParsing).Content.Trim() } catch {}
             }
@@ -1008,8 +1008,8 @@ function star {
             [Console]::WriteLine("Downloading: $dlUrl")
             $httpCode = ""
             try {
-                if (Get-Command curl -ErrorAction SilentlyContinue) {
-                    $result = & curl -sS -L --max-time 10 -w '%{http_code}' -o $tempFile $dlUrl 2>$null
+                if (Get-Command curl.exe -ErrorAction SilentlyContinue) {
+                    $result = & curl.exe -sS -L --max-time 10 -w '%{http_code}' -o $tempFile $dlUrl 2>$null
                     $curlExit = $LASTEXITCODE
                     $httpCode = $result
                 } else {
