@@ -3,7 +3,7 @@
 # Deterministic rocket + starfield greeting for zsh
 # Ported from fish_greeting.fish
 
-_RKT_VERSION="1.2.4"
+_RKT_VERSION="1.2.5"
 _RKT_UPDATE_CACHE="$HOME/.config/zsh/rocket_update_check"
 
 _rkt_update_check_background() {
@@ -519,27 +519,39 @@ _rkt_launch_rocket() {
     local d=$dir
     local moved=false
 
-    printf '\e[s\e[%d;%dH\e[38;2;%d;%d;%dm|\e[m\e[u' "$row" "$col" "$red" "$green" "$blue"
+    if (( d == 1 )); then
+      printf '\e[s\e[%d;%dH /|\e[%d;%dH/ |\e[u' "$row" "$col" "$((row+1))" "$col"
+    else
+      printf '\e[s\e[%d;%dH|\\ \e[%d;%dH| \\\e[u' "$row" "$col" "$((row+1))" "$col"
+    fi
 
     while (( row > 1 )); do
-      sleep 0.1
+      sleep 0.3
 
       if $moved; then
-        printf '\e[s\e[%d;%dH \e[%d;%dH \e[u' "$row" "$col" "$((row+1))" "$col"
+        if (( d == 1 )); then
+          printf '\e[s\e[%d;%dH   \e[%d;%dH   \e[%d;%dH \e[u' "$row" "$col" "$((row+1))" "$col" "$((row+2))" "$((col+2))"
+        else
+          printf '\e[s\e[%d;%dH   \e[%d;%dH   \e[%d;%dH \e[u' "$row" "$col" "$((row+1))" "$col" "$((row+2))" "$col"
+        fi
       else
-        printf '\e[s\e[%d;%dH \e[u' "$row" "$col"
+        printf '\e[s\e[%d;%dH   \e[%d;%dH   \e[u' "$row" "$col" "$((row+1))" "$col"
       fi
 
       local nr=$((row - 1))
       local nc=$((col + d))
-      if (( nc < 2 || nc >= term_cols )); then
+      if (( nc < 2 || nc + 2 >= term_cols )); then
         d=$(( -d ))
         nc=$((col + d))
       fi
       row=$nr; col=$nc
       moved=true
 
-      printf '\e[s\e[%d;%dH\e[38;2;%d;%d;%dm|\e[m\e[u' "$row" "$col" "$red" "$green" "$blue"
+      if (( d == 1 )); then
+        printf '\e[s\e[%d;%dH /|\e[%d;%dH/ |\e[u' "$row" "$col" "$((row+1))" "$col"
+      else
+        printf '\e[s\e[%d;%dH|\\ \e[%d;%dH| \\\e[u' "$row" "$col" "$((row+1))" "$col"
+      fi
 
       local nf=3
       _rkt_prng_range 3 4; nf=$_RKT_PRNG_RET
@@ -552,11 +564,19 @@ _rkt_launch_rocket() {
         case $rb in
           0) ch='^' ;; 1) ch='*' ;; *) ch='v' ;;
         esac
-        printf '\e[s\e[%d;%dH\e[38;2;%d;%d;%dm%s\e[m\e[u' "$((row+1))" "$col" "$red" "$green" "$blue" "$ch"
+        if (( d == 1 )); then
+          printf '\e[s\e[%d;%dH\e[38;2;%d;%d;%dm%s\e[m\e[u' "$((row+2))" "$((col+2))" "$red" "$green" "$blue" "$ch"
+        else
+          printf '\e[s\e[%d;%dH\e[38;2;%d;%d;%dm%s\e[m\e[u' "$((row+2))" "$col" "$red" "$green" "$blue" "$ch"
+        fi
       done
     done
 
-    printf '\e[s\e[%d;%dH \e[%d;%dH \e[u' 1 "$col" 2 "$col"
+    if (( d == 1 )); then
+      printf '\e[s\e[%d;%dH   \e[%d;%dH   \e[%d;%dH \e[u' 1 "$col" 2 "$col" 3 "$((col+2))"
+    else
+      printf '\e[s\e[%d;%dH   \e[%d;%dH   \e[%d;%dH \e[u' 1 "$col" 2 "$col" 3 "$col"
+    fi
   ) &
   _RKT_ROCKET_PIDS+=($!)
 }

@@ -3,7 +3,7 @@
 # Implements xorshift32 PRNG for cross-shell deterministic output
 # Works in PowerShell 5.1+ and PowerShell 7+
 
-$script:RktVersion = '1.2.4'
+$script:RktVersion = '1.2.5'
 $script:RktUpdateCache = Join-Path $HOME '.config/powershell/rocket_update_check'
 
 function Invoke-UpdateCheckBackground {
@@ -906,37 +906,57 @@ function star {
                             $r = $cr; $g = $cg; $b = $cb
                             $moved = $false
 
-                            [Console]::Write("`e[s`e[$row;${col}H`e[38;2;${r};${g};${b}m|`e[m`e[u")
+                            if ($d -eq 1) {
+                                [Console]::Write("`e[s`e[$row;${col}H /|`e[$($row+1);${col}H/ |`e[u")
+                            } else {
+                                [Console]::Write("`e[s`e[$row;${col}H|\ `e[$($row+1);${col}H| \`e[u")
+                            }
 
                             while ($row -gt 1) {
-                                Start-Sleep -Milliseconds 100
+                                Start-Sleep -Milliseconds 300
 
                                 if ($moved) {
-                                    [Console]::Write("`e[s`e[$row;${col}H `e[$($row+1);${col}H `e[u")
+                                    if ($d -eq 1) {
+                                        [Console]::Write("`e[s`e[$row;${col}H   `e[$($row+1);${col}H   `e[$($row+2);$($col+2)]H `e[u")
+                                    } else {
+                                        [Console]::Write("`e[s`e[$row;${col}H   `e[$($row+1);${col}H   `e[$($row+2);${col}H `e[u")
+                                    }
                                 } else {
-                                    [Console]::Write("`e[s`e[$row;${col}H `e[u")
+                                    [Console]::Write("`e[s`e[$row;${col}H   `e[$($row+1);${col}H   `e[u")
                                 }
 
                                 $nr = $row - 1
                                 $nc = $col + $d
-                                if ($nc -lt 2 -or $nc -ge $tw) {
+                                if ($nc -lt 2 -or ($nc + 2) -ge $tw) {
                                     $d = -$d
                                     $nc = $col + $d
                                 }
                                 $row = $nr; $col = $nc
                                 $moved = $true
 
-                                [Console]::Write("`e[s`e[$row;${col}H`e[38;2;${r};${g};${b}m|`e[m`e[u")
+                                if ($d -eq 1) {
+                                    [Console]::Write("`e[s`e[$row;${col}H /|`e[$($row+1);${col}H/ |`e[u")
+                                } else {
+                                    [Console]::Write("`e[s`e[$row;${col}H|\ `e[$($row+1);${col}H| \`e[u")
+                                }
 
                                 $nf = Get-PrngRange 3 4
                                 for ($fi = 0; $fi -lt $nf; $fi++) {
+                                    Start-Sleep -Milliseconds 25
                                     $rb = Get-PrngRange 0 2
                                     $ch = @('^', '*', 'v')[$rb]
-                                    [Console]::Write("`e[s`e[$($row+1);${col}H`e[38;2;${r};${g};${b}m${ch}`e[m`e[u")
-                                    Start-Sleep -Milliseconds 25
+                                    if ($d -eq 1) {
+                                        [Console]::Write("`e[s`e[$($row+2);$($col+2)]H`e[38;2;${r};${g};${b}m${ch}`e[m`e[u")
+                                    } else {
+                                        [Console]::Write("`e[s`e[$($row+2);${col}H`e[38;2;${r};${g};${b}m${ch}`e[m`e[u")
+                                    }
                                 }
                             }
-                            [Console]::Write("`e[s`e[1;${col}H `e[2;${col}H `e[u")
+                            if ($d -eq 1) {
+                                [Console]::Write("`e[s`e[1;${col}H   `e[2;${col}H   `e[3;$($col+2)]H `e[u")
+                            } else {
+                                [Console]::Write("`e[s`e[1;${col}H   `e[2;${col}H   `e[3;${col}H `e[u")
+                            }
                         }.GetNewClosure()
                         $task = [System.Threading.Tasks.Task]::Run($sb)
                         $rocketTasks.Add($task)

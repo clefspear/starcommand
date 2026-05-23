@@ -1,5 +1,5 @@
 # Created By: Peter Azmy
-set -g _RKT_VERSION "1.2.4"
+set -g _RKT_VERSION "1.2.5"
 set -g _RKT_UPDATE_CACHE ~/.config/fish/rocket_update_check
 
 function _rkt_update_check_background --description "Background weekly version check"
@@ -439,9 +439,80 @@ function _star_preview_palette --description "Render rocket art with a temporary
     set --global _rocket_stars $saved_stars
 end
 
-function _rkt_rocket_cleanup --description "Reset terminal after Ctrl-C"
+function _rkt_rocket_cleanup --description "Kill rocket background processes and reset terminal"
+    for pid in $_RKT_ROCKET_PIDS
+        kill $pid 2>/dev/null
+    end
+    set -g _RKT_ROCKET_PIDS
     set_color normal
     printf '\e[?25h'
+end
+
+function _rkt_launch_rocket --argument-names row col dir term_cols theme --description "Animate a rocket climbing in background"
+    set -l red 255; set -l green 255; set -l blue 255
+    if test "$theme" = "light"
+        set red 51; set green 51; set blue 51
+    end
+
+    if test $dir -eq 1
+        printf '\e[s\e[%d;%dH /|\e[%d;%dH/ |\e[u' $row $col (math "$row + 1") $col
+    else
+        printf '\e[s\e[%d;%dH|\\ \e[%d;%dH| \\\e[u' $row $col (math "$row + 1") $col
+    end
+
+    set -l moved false
+    while test $row -gt 1
+        sleep 0.3
+
+        if $moved
+            if test $dir -eq 1
+                printf '\e[s\e[%d;%dH   \e[%d;%dH   \e[%d;%dH \e[u' $row $col (math "$row + 1") $col (math "$row + 2") (math "$col + 2")
+            else
+                printf '\e[s\e[%d;%dH   \e[%d;%dH   \e[%d;%dH \e[u' $row $col (math "$row + 1") $col (math "$row + 2") $col
+            end
+        else
+            printf '\e[s\e[%d;%dH   \e[%d;%dH   \e[u' $row $col (math "$row + 1") $col
+        end
+
+        set -l nr (math "$row - 1")
+        set -l nc (math "$col + $dir")
+        if test $nc -lt 2 -o (math "$nc + 2") -ge $term_cols
+            set dir (math "-$dir")
+            set nc (math "$col + $dir")
+        end
+        set row $nr; set col $nc
+        set moved true
+
+        if test $dir -eq 1
+            printf '\e[s\e[%d;%dH /|\e[%d;%dH/ |\e[u' $row $col (math "$row + 1") $col
+        else
+            printf '\e[s\e[%d;%dH|\\ \e[%d;%dH| \\\e[u' $row $col (math "$row + 1") $col
+        end
+
+        set -l nf 3
+        if test (random 0 1) -eq 0; set nf 4; end
+        for fi in (seq $nf)
+            sleep 0.025
+            set -l ch '^'
+            set -l rb (random 0 2)
+            if test $rb -eq 1
+                set ch '*'
+            else if test $rb -eq 2
+                set ch 'v'
+            end
+            if test $dir -eq 1
+                printf '\e[s\e[%d;%dH\e[38;2;%d;%d;%dm%s\e[m\e[u' (math "$row + 2") (math "$col + 2") $red $green $blue $ch
+            else
+                printf '\e[s\e[%d;%dH\e[38;2;%d;%d;%dm%s\e[m\e[u' (math "$row + 2") $col $red $green $blue $ch
+            end
+        end
+    end
+
+    if test $dir -eq 1
+        printf '\e[s\e[1;%dH   \e[2;%dH   \e[3;%dH \e[u' $col $col (math "$col + 2")
+    else
+        printf '\e[s\e[1;%dH   \e[2;%dH   \e[3;%dH \e[u' $col $col $col
+    end
 end
 
 
@@ -656,15 +727,13 @@ function star --description "Save / browse / preview rocket palettes"
             if test $n -ge 800
                 set has_rockets true
                 _rkt_load_settings
-                set --local rocket_row
-                set --local rocket_col
-                set --local rocket_dir
-                set --local rocket_moved
-                trap '_rkt_rocket_cleanup; trap - INT; kill -INT %self' INT
+                set -g _RKT_ROCKET_PIDS
+                trap '_rkt_rocket_cleanup; trap - INT; printf "\e[?25h"; kill -INT %self' INT
             end
 
             echo ""
             for i in (seq $n)
+                _rkt_prng_seed
                 set --local p (_gen_rocket_palette)
                 printf "%3d. " $i
                 set_color $p[1]; echo -n "★ "
@@ -676,106 +745,29 @@ function star --description "Save / browse / preview rocket palettes"
                 set_color normal
                 echo "  $p[1] $p[2] $p[3] $p[4] $p[5] $p[6]"
 
-                if $has_rockets
-                    if test (math "$i % 150") -eq 0
-                        set --local prefix (printf "%3d. " $i)
-                        set --local prefix_len (string length -- "$prefix")
-                        set --local col_idx (_rkt_prng_range 0 5)
-                        set --local term_col (math "$prefix_len + 1 + $col_idx * 2")
-                        set --local term_rows (tput lines 2>/dev/null; or echo 24)
-                        set --local term_cols (tput cols 2>/dev/null; or echo 80)
-                        set --local start_row (math "$term_rows - 1")
-                        set --local dir (_rkt_prng_range 0 1)
-                        if test $dir -eq 0; set dir -1; end
+                if $has_rockets; and test (math "$i % 150") -eq 0
+                    set --local prefix (printf "%3d. " $i)
+                    set --local prefix_len (string length -- "$prefix")
+                    set --local col_idx (_rkt_prng_range 0 5)
+                    set --local term_col (math "$prefix_len + 1 + $col_idx * 2")
+                    set --local term_rows (tput lines 2>/dev/null; or echo 24)
+                    set --local term_cols (tput cols 2>/dev/null; or echo 80)
+                    set --local start_row (math "$term_rows - 1")
+                    set --local dir (_rkt_prng_range 0 1)
+                    if test $dir -eq 0; set dir -1; end
 
-                        if test "$_rkt_terminal_theme" = light
-                            printf '\e[38;2;51;51;51m'
-                        else
-                            printf '\e[38;2;255;255;255m'
-                        end
-                        printf '\e[%d;%dH|\e[m' $start_row $term_col
-
-                        set --append rocket_row $start_row
-                        set --append rocket_col $term_col
-                        set --append rocket_dir $dir
-                        set --append rocket_moved false
-                    end
-
-                    set --local ri 1
-                    while test $ri -le (count $rocket_row)
-                        set --local row $rocket_row[$ri]
-                        set --local col $rocket_col[$ri]
-                        set --local dir $rocket_dir[$ri]
-                        set --local moved $rocket_moved[$ri]
-
-                        set --local term_rows (tput lines 2>/dev/null; or echo 24)
-                        set --local term_cols (tput cols 2>/dev/null; or echo 80)
-
-                        if test $row -le 1
-                            printf '\e[%d;%dH \e[%d;%dH ' $row $col (math "$row + 1") $col
-                            set --erase rocket_row[$ri]
-                            set --erase rocket_col[$ri]
-                            set --erase rocket_dir[$ri]
-                            set --erase rocket_moved[$ri]
-                            continue
-                        end
-
-                        # Clear old body and flame
-                        if $moved
-                            printf '\e[%d;%dH \e[%d;%dH ' $row $col (math "$row + 1") $col
-                        else
-                            printf '\e[%d;%dH ' $row $col
-                        end
-
-                        # Move
-                        set --local nr (math "$row - 1")
-                        set --local nc (math "$col + $dir")
-                        if test $nc -lt 2 -o $nc -ge $term_cols
-                            set dir (math "-$dir")
-                            set nc (math "$col + $dir")
-                        end
-
-                        set rocket_row[$ri] $nr
-                        set rocket_col[$ri] $nc
-                        set rocket_dir[$ri] $dir
-                        set rocket_moved[$ri] true
-                        set row $nr; set col $nc
-
-                        if test "$_rkt_terminal_theme" = light
-                            printf '\e[38;2;51;51;51m'
-                        else
-                            printf '\e[38;2;255;255;255m'
-                        end
-                        printf '\e[%d;%dH|\e[m' $row $col
-
-                        # Flame flickers 3-4 times
-                        set --local nf (_rkt_prng_range 3 4)
-                        for fi in (seq $nf)
-                            set --local rb (random 0 2)
-                            set --local ch '^'
-                            if test $rb -eq 1; set ch '*'; end
-                            if test $rb -eq 2; set ch 'v'; end
-
-                            if test "$_rkt_terminal_theme" = light
-                                printf '\e[38;2;51;51;51m'
-                            else
-                                printf '\e[38;2;255;255;255m'
-                            end
-                            printf '\e[%d;%dH%s\e[m' (math "$row + 1") $col $ch
-                        end
-
-                        set ri (math "$ri + 1")
-                    end
+                    set --local self_path (status filename)
+                    fish -c "
+                        source '$self_path'
+                        _rkt_launch_rocket $start_row $term_col $dir $term_cols $_rkt_terminal_theme
+                    " &
+                    set -g _RKT_ROCKET_PIDS $last_pid $_RKT_ROCKET_PIDS
                 end
             end
 
             if $has_rockets
                 trap - INT
-                set --local ri 1
-                while test $ri -le (count $rocket_row)
-                    printf '\e[%d;%dH \e[%d;%dH ' $rocket_row[$ri] $rocket_col[$ri] (math "$rocket_row[$ri] + 1") $rocket_col[$ri]
-                    set ri (math "$ri + 1")
-                end
+                _rkt_rocket_cleanup
             end
 
             echo ""
