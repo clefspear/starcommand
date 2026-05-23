@@ -1,5 +1,5 @@
 # Created By: Peter Azmy
-set -g _RKT_VERSION "1.2.1"
+set -g _RKT_VERSION "1.2.5"
 set -g _RKT_UPDATE_CACHE ~/.config/fish/rocket_update_check
 
 function _rkt_update_check_background --description "Background weekly version check"
@@ -242,7 +242,7 @@ function _rocket_print_star_row --description "Render one row of 6 colored stars
     if test (count $argv) -ge 3
         echo -n "$argv[3]"
     else
-        printf "%3d. " $n
+        printf "%4d. " $n
     end
     set_color $cs[1]; echo -n "★ "
     set_color $cs[2]; echo -n "★ "
@@ -440,6 +440,8 @@ function _star_preview_palette --description "Render rocket art with a temporary
 end
 
 
+
+
 function star --description "Save / browse / preview rocket palettes"
     set --local fav_file ~/.config/fish/rocket_favorites.txt
     set --local hist_file ~/.config/fish/rocket_history.txt
@@ -562,7 +564,7 @@ function star --description "Save / browse / preview rocket palettes"
                 if test $display_n -eq 1
                     _rocket_print_star_row $display_n $lines[$i] "(Current) 1. "
                 else
-                    _rocket_print_star_row $display_n $lines[$i] (printf "        %3d. " $display_n)
+                    _rocket_print_star_row $display_n $lines[$i] (printf "       %4d. " $display_n)
                 end
                 set shown (math $shown + 1)
             end
@@ -647,19 +649,104 @@ function star --description "Save / browse / preview rocket palettes"
                 set n $argv[2]
             end
 
+            set --local has_rockets false
+            set --local _rkt_alive false
+            set --local _rkt_col 0
+            set --local _rkt_dir 1
+            set --local _rkt_frame 0
+            set --local _rkt_subframe 0
+            set --local _rkt_flame_idx 0
+            set --local _rkt_next_launch 125
+            if test $n -ge 250
+                set has_rockets true
+                _rkt_load_settings
+            end
+            set --local _rkt_ansi 97
+            if test "$_rkt_terminal_theme" = light
+                set _rkt_ansi 30
+            end
+
             echo ""
             for i in (seq $n)
+                _rkt_prng_seed
+                if $has_rockets; and $_rkt_alive; and test $_rkt_subframe -eq 0
+                    set _rkt_flame_idx (_rkt_prng_range 0 1)
+                end
                 set --local p (_gen_rocket_palette)
-                printf "%3d. " $i
-                set_color $p[1]; echo -n "★ "
-                set_color $p[2]; echo -n "★ "
-                set_color $p[3]; echo -n "★ "
-                set_color $p[4]; echo -n "★ "
-                set_color $p[5]; echo -n "★ "
-                set_color $p[6]; echo -n "★"
+                printf "%4d. " $i
+                if $has_rockets; and $_rkt_alive
+                    set --local _rkt_row
+                    if test $_rkt_subframe -eq 0
+                        set _rkt_row " ^ "
+                    else if test $_rkt_subframe -eq 1
+                        set _rkt_row "/_\\"
+                    else
+                        if test $_rkt_flame_idx -eq 0
+                            set _rkt_row " v "
+                        else
+                            set _rkt_row " * "
+                        end
+                    end
+                    for s in (seq 0 5)
+                        if test $s -eq $_rkt_col
+                            printf '\033[0m\033[%sm%s\033[0m' $_rkt_ansi $_rkt_row
+                        else
+                            set_color $p[(math "$s + 1")]; echo -n "★"
+                            if test $s -lt 5
+                                set --local should_space true
+                                if test $s -eq (math "$_rkt_col - 1")
+                                    set should_space false
+                                end
+                                if test $_rkt_col -eq 0; and test $s -eq 1
+                                    set should_space false
+                                end
+                                if $should_space
+                                    echo -n ' '
+                                end
+                            end
+                        end
+                    end
+                else
+                    set_color $p[1]; echo -n "★ "
+                    set_color $p[2]; echo -n "★ "
+                    set_color $p[3]; echo -n "★ "
+                    set_color $p[4]; echo -n "★ "
+                    set_color $p[5]; echo -n "★ "
+                    set_color $p[6]; echo -n "★"
+                end
                 set_color normal
                 echo "  $p[1] $p[2] $p[3] $p[4] $p[5] $p[6]"
+                true
+                if $has_rockets
+                    if $_rkt_alive
+                        set _rkt_subframe (math "$_rkt_subframe + 1")
+                        if test $_rkt_subframe -ge 3
+                            set _rkt_subframe 0
+                            set _rkt_frame (math "$_rkt_frame + 1")
+                            if test $_rkt_frame -ge 24
+                                set _rkt_alive false
+                                set _rkt_next_launch (math "$i + 200")
+                            else
+                                set --local _rkt_nc (math "$_rkt_col + $_rkt_dir")
+                                if test $_rkt_nc -lt 0 -o $_rkt_nc -gt 4
+                                    set _rkt_dir (math "-$_rkt_dir")
+                                    set _rkt_nc (math "$_rkt_col + $_rkt_dir")
+                                end
+                                set _rkt_col $_rkt_nc
+                            end
+                        end
+                    else if test $i -ge $_rkt_next_launch; and test (math "$n - $i") -ge 72
+                        set _rkt_alive true
+                        set _rkt_col 3
+                        set _rkt_frame 0
+                        set _rkt_subframe 0
+                        set _rkt_flame_idx 0
+                        set _rkt_dir (_rkt_prng_range 0 1)
+                        if test $_rkt_dir -eq 0; set _rkt_dir -1; end
+                    end
+                end
             end
+
             echo ""
             echo "  star show <h1>..<h6>   preview a full rocket"
             echo "  star add  <h1>..<h6> [<h1>..<h6> ...]   save palette(s) to favorites"
@@ -866,14 +953,41 @@ function star --description "Save / browse / preview rocket palettes"
             if test "$_rkt_channel" = "cantaloupe"
                 echo "star update stable            switch back to the stable channel"
             end
+            echo "star supernova                 remove starcommand from this system"
             echo ""
             echo "  Favorites: $fav_file"
             echo "  History:   $hist_file (last 100 launches)"
             echo "  Settings:  ~/.config/fish/rocket_settings.fish"
 
+        case supernova
+            echo "Are you sure you want to uninstall starcommand? [y/N]"
+            read --local response
+            if test "$response" != "y" -a "$response" != "Y"
+                echo "Uninstall cancelled."
+                return 0
+            end
+            echo "Keep your favorites and history? [Y/n]"
+            read --local response
+            set --local keep true
+            if test "$response" = "n" -o "$response" = "N"
+                set keep false
+            end
+            set --local fish_func_dir ~/.config/fish/functions
+            if test -f "$fish_func_dir/fish_greeting.fish"
+                rm -f "$fish_func_dir/fish_greeting.fish"
+            end
+            rm -f $_RKT_UPDATE_CACHE
+            if $keep
+                echo "starcommand uninstalled. Favorites, history, and settings kept at ~/.config/fish/"
+            else
+                rm -f ~/.config/fish/rocket_favorites.txt ~/.config/fish/rocket_history.txt ~/.config/fish/rocket_settings.fish
+                echo "starcommand has been uninstalled."
+            end
+            return 0
+
         case '*'
             echo "Unknown subcommand: $argv[1]"
-            echo "Try: star, star list, star show, star add, star explore, star color, star weight, star help"
+            echo "Try: star, star list, star show, star add, star explore, star color, star weight, star update, star supernova, star help"
             return 1
     end
 end

@@ -3,7 +3,7 @@
 # starcommand.sh — Portable rocket greeting for Bash
 # Implements xorshift32 PRNG for cross-shell deterministic output
 
-_RKT_VERSION="1.2.1"
+_RKT_VERSION="1.2.5"
 _RKT_UPDATE_CACHE="$HOME/.config/bash/rocket_update_check"
 
 _rkt_update_check_background() {
@@ -435,7 +435,7 @@ _rocket_print_star_row() {
     if (( $# >= 3 )); then
         printf '%s' "$3"
     else
-        printf "%3d. " "$n"
+        printf "%4d. " "$n"
     fi
     rkt_set_color "${cs[0]}"; echo -n "★ "
     rkt_set_color "${cs[1]}"; echo -n "★ "
@@ -607,6 +607,8 @@ _rkt_net_info() {
     source "$cache"
 }
 
+
+
 # ── Star command ───────────────────────────────────────────────────────────────
 
 star() {
@@ -736,7 +738,7 @@ star() {
                 if (( display_n == 1 )); then
                     _rocket_print_star_row "$display_n" "${lines[$i]}" "(Current) 1. "
                 else
-                    _rocket_print_star_row "$display_n" "${lines[$i]}" "$(printf '        %3d. ' "$display_n")"
+                    _rocket_print_star_row "$display_n" "${lines[$i]}" "$(printf '       %4d. ' "$display_n")"
                 fi
                 ((shown++))
             done
@@ -817,20 +819,89 @@ star() {
             if (( $# >= 2 )) && [[ "$2" =~ ^[0-9]+$ ]]; then
                 n="$2"
             fi
+            local has_rockets=false
+            local _rkt_alive=false _rkt_col=0 _rkt_dir=1 _rkt_frame=0 _rkt_subframe=0 _rkt_flame_idx=0 _rkt_next_launch=125
+            if (( n >= 250 )); then
+                has_rockets=true
+                _rkt_load_settings
+            fi
+            local _rkt_ansi=97
+            [[ "$_rkt_terminal_theme" == light ]] && _rkt_ansi=30
             echo ""
-            local i p1 p2 p3 p4 p5 p6
+            local i
             for ((i=1; i<=n; i++)); do
                 rkt_prng_seed
+                if $has_rockets && $_rkt_alive && (( _rkt_subframe == 0 )); then
+                    rkt_prng_range 0 1
+                    _rkt_flame_idx=$_RKT_PRNG_RET
+                fi
                 local -a p=($(rkt_gen_rocket_palette))
-                printf "%3d. " "$i"
-                rkt_set_color "${p[0]}"; echo -n "★ "
-                rkt_set_color "${p[1]}"; echo -n "★ "
-                rkt_set_color "${p[2]}"; echo -n "★ "
-                rkt_set_color "${p[3]}"; echo -n "★ "
-                rkt_set_color "${p[4]}"; echo -n "★ "
-                rkt_set_color "${p[5]}"; echo -n "★"
+                printf "%4d. " "$i"
+                if $has_rockets && $_rkt_alive; then
+                    local _rkt_row
+                    if (( _rkt_subframe == 0 )); then
+                        _rkt_row=" ^ "
+                    elif (( _rkt_subframe == 1 )); then
+                        _rkt_row=$(printf '/_\\')
+                    else
+                        if (( _rkt_flame_idx == 0 )); then
+                            _rkt_row=" v "
+                        else
+                            _rkt_row=" * "
+                        fi
+                    fi
+                    local s
+                    for ((s=0; s<6; s++)); do
+                        if (( s == _rkt_col )); then
+                            printf '\033[0m\033[%sm%s\033[0m' "$_rkt_ansi" "$_rkt_row"
+                        else
+                            rkt_set_color "${p[s]}"; echo -n "★"
+                            if (( s < 5 )); then
+                                if (( s != _rkt_col - 1 && !(_rkt_col == 0 && s == 1) )); then
+                                    echo -n ' '
+                                fi
+                            fi
+                        fi
+                    done
+                else
+                    rkt_set_color "${p[0]}"; echo -n "★ "
+                    rkt_set_color "${p[1]}"; echo -n "★ "
+                    rkt_set_color "${p[2]}"; echo -n "★ "
+                    rkt_set_color "${p[3]}"; echo -n "★ "
+                    rkt_set_color "${p[4]}"; echo -n "★ "
+                    rkt_set_color "${p[5]}"; echo -n "★"
+                fi
                 rkt_set_color normal
                 printf '  %s %s %s %s %s %s\n' "${p[0]}" "${p[1]}" "${p[2]}" "${p[3]}" "${p[4]}" "${p[5]}"
+                true
+                if $has_rockets; then
+                    if $_rkt_alive; then
+                        ((_rkt_subframe++))
+                        if (( _rkt_subframe >= 3 )); then
+                            _rkt_subframe=0
+                            ((_rkt_frame++))
+                            if (( _rkt_frame >= 24 )); then
+                                _rkt_alive=false
+                                _rkt_next_launch=$(( i + 200 ))
+                            else
+                                local _rkt_nc=$((_rkt_col + _rkt_dir))
+                                if (( _rkt_nc < 0 || _rkt_nc > 4 )); then
+                                    _rkt_dir=$(( -_rkt_dir ))
+                                    _rkt_nc=$((_rkt_col + _rkt_dir))
+                                fi
+                                _rkt_col=$_rkt_nc
+                            fi
+                        fi
+                    elif (( i >= _rkt_next_launch && n - i >= 72 )); then
+                        _rkt_alive=true
+                        _rkt_col=3
+                        _rkt_frame=0
+                        _rkt_subframe=0
+                        _rkt_flame_idx=0
+                        rkt_prng_range 0 1
+                        _rkt_dir=$(( _RKT_PRNG_RET == 0 ? -1 : 1 ))
+                    fi
+                fi
             done
             echo ""
             echo "  star show <h1>..<h6>   preview a full rocket"
@@ -1043,15 +1114,46 @@ echo "star explore [N]              browse N random palettes (default 5)"
             if [[ "$_rkt_channel" == "cantaloupe" ]]; then
                 echo "star update stable            switch back to the stable channel"
             fi
+                echo "star supernova                 remove starcommand from this system"
             echo ""
             echo "  Favorites: $fav_file"
             echo "  History:   $hist_file (last 100 launches)"
             echo "  Settings:  $HOME/.config/bash/rocket_settings.sh"
             ;;
 
+        supernova)
+            echo "Are you sure you want to uninstall starcommand? [y/N]"
+            read -r _rkt_response
+            if [[ "$_rkt_response" != "y" && "$_rkt_response" != "Y" ]]; then
+                echo "Uninstall cancelled."
+                return 0
+            fi
+            echo "Keep your favorites and history? [Y/n]"
+            read -r _rkt_response
+            local keep=true
+            if [[ "$_rkt_response" == "n" || "$_rkt_response" == "N" ]]; then
+                keep=false
+            fi
+            local sed_opt="-i"
+            [[ "$(uname -s)" == "Darwin" ]] && sed_opt="-i ''"
+            for f in "$HOME/.bashrc" "$HOME/.bash_profile"; do
+                [[ -f "$f" ]] && eval sed "$sed_opt" '/starcommand\.sh/d; /# >>> starcommand >>>/,/# <<< starcommand <<</d' "$f"
+            done
+            local script_path="${BASH_SOURCE[0]}"
+            [[ -n "$script_path" && -f "$script_path" ]] && rm -f "$script_path"
+            rm -f "$_RKT_UPDATE_CACHE"
+            if $keep; then
+                echo "starcommand uninstalled. Favorites, history, and settings kept at ~/.config/bash/"
+            else
+                rm -f "$HOME/.config/bash/rocket_favorites.txt" "$HOME/.config/bash/rocket_history.txt" "$HOME/.config/bash/rocket_settings.sh"
+                echo "starcommand has been uninstalled."
+            fi
+            return 0
+            ;;
+
         *)
             echo "Unknown subcommand: $1"
-            echo "Try: star, star list, star show, star add, star explore, star color, star weight, star help"
+            echo "Try: star, star list, star show, star add, star explore, star color, star weight, star update, star supernova, star help"
             return 1
             ;;
     esac

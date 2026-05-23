@@ -2,6 +2,39 @@
 
 All notable changes to starcommand are documented here.
 
+## [1.3.0] — 2026-05-23
+
+- Lower rocket threshold from N>=300 to N>=250
+- Guard rocket launches against truncated flights ((N - i) >= 72)
+- Move first-launch iteration from 150 to 125
+
+## [1.2.5] — 2026-05-23
+
+- Fix rocket color bleed: add ANSI reset before rocket overlay
+- Fix fish trailing-backslash parse error in rocket body row
+- Change rocket body from /\ to /_\ (3-char rows with underscore)
+- Remove sleeps during rocket flight
+- Change line-number padding from %3d to %4d
+- Switch cooldown from one-shot flag to ~200-iteration counter
+- Lower threshold from N>=800 to N>=300
+- Move first launch from iteration 500 to 150
+
+## [1.2.4] — 2026-05-23
+
+- Fix doubled cantaloupe suffix in version display
+
+## [1.2.3] — 2026-05-23
+
+- Fix update URL construction when no existing installation
+
+## [1.2.2] — 2026-05-23
+
+- Added visual effect to star explore
+
+## [1.2.1] — 2026-05-23
+
+- Added star supernova command
+
 ## [1.2.0] — 2026-05-23
 
 - Internal refactor of star update

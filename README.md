@@ -49,6 +49,7 @@ But the kicker: it's all reproducible. Save a palette to favorites and you've sa
 |`star show H1..H6`|Preview a custom palette as a mini rocket  |
 |`star add H1..H6 [H1..H6 ...]` |Add one or more palettes to favorites|
 |`star explore [N]`|Browse `N` random palettes (default 5)     |
+|`star supernova`  |Uninstall starcommand from this system     |
 
 *`star show` previews any 6 hex codes as a full rocket before saving — useful for vibe-checking a palette you found.*
 
@@ -63,17 +64,19 @@ But the kicker: it's all reproducible. Save a palette to favorites and you've sa
 |                                 |                                                 |
 |---------------------------------|-------------------------------------------------|
 |`star color`                     |Show current palette + rocket preview            |
-|`star color theme <dark\|light>`  |Match your terminal background                   |
+|`star color theme <dark\|light>`  |Match your terminal background; rocket is white by default, black on light terminals|
 |`star color random <white\|neon>` |Star color on random rockets                     |
 |`star color favorite <gold\|neon>`|Star color on favorite rockets                   |
 |`star color reset`               |Restore defaults                                 |
 |`star weight <0-100>`            |Ratio of favorites to random rockets (default 20)|
 
-Light-mode terminal? Run this once so stars stay readable:
+Light-mode terminal? Run this once so stars stay readable and the rocket appears black instead of white:
 
 ```sh
 star color theme light
 ```
+
+The rocket is white by default (`_rkt_terminal_theme=dark`). The alternate theme renders it black (`_rkt_terminal_theme=light`) so it stays visible on light terminals.
 
 -----
 
@@ -231,7 +234,9 @@ Plain text. Easy to back up, sync via dotfiles, or share.
 
 ## Uninstall
 
-Each block removes the source line from your shell's run command file and deletes the installed scripts, favorites, history, and settings.
+Run `star supernova` to remove starcommand from your system. You'll be asked to confirm, and whether to keep your favorites and history.
+
+Alternatively, remove the source lines manually per the shell-specific instructions below, then delete the config files.
 
 **\*bash:**
 

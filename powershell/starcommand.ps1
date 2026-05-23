@@ -3,7 +3,7 @@
 # Implements xorshift32 PRNG for cross-shell deterministic output
 # Works in PowerShell 5.1+ and PowerShell 7+
 
-$script:RktVersion = '1.2.1'
+$script:RktVersion = '1.2.5'
 $script:RktUpdateCache = Join-Path $HOME '.config/powershell/rocket_update_check'
 
 function Invoke-UpdateCheckBackground {
@@ -184,7 +184,6 @@ $global:_rkt_random_star_mode = 'white'
 $global:_rkt_favorite_star_mode = 'gold'
 $global:_rkt_terminal_theme = 'dark'
 $global:_rkt_favorite_weight = 20
-$global:_rkt_channel = 'main'
 
 # ── Globals (set on each greeting) ─────────────────────────────────────────────
 
@@ -420,7 +419,7 @@ function Invoke-PrintStarRow {
     if ($Prefix) {
         [Console]::Write($Prefix)
     } else {
-        [Console]::Write("{0,3}. " -f $N)
+        [Console]::Write("{0,4}. " -f $N)
     }
     Set-RocketColor $cs[0]; [Console]::Write('★ ')
     Set-RocketColor $cs[1]; [Console]::Write('★ ')
@@ -789,7 +788,7 @@ function star {
                 if ($displayN -eq 1) {
                     Invoke-PrintStarRow $displayN $lines[$i] '(Current) 1. '
                 } else {
-                    Invoke-PrintStarRow $displayN $lines[$i] ("        {0,3}. " -f $displayN)
+                    Invoke-PrintStarRow $displayN $lines[$i] ("       {0,4}. " -f $displayN)
                 }
                 $shown++
             }
@@ -862,18 +861,88 @@ function star {
             if ($args.Count -ge 2 -and $args[1] -match '^\d+$') {
                 $n = [int]$args[1]
             }
+
+            $hasRockets = $false
+            $rktAlive = $false
+            $rktCol = 0
+            $rktDir = 1
+            $rktFrame = 0
+            $rktSubframe = 0
+            $rktFlameIdx = 0
+            $rktNextLaunch = 125
+            if ($n -ge 250) {
+                $hasRockets = $true
+                Invoke-LoadSettings
+            }
+            $rktAnsi = 97
+            if ($global:_rkt_terminal_theme -eq 'light') { $rktAnsi = 30 }
+
             [Console]::WriteLine()
             for ($i = 1; $i -le $n; $i++) {
+                if ($hasRockets -and $rktAlive -and $rktSubframe -eq 0) {
+                    $rktFlameIdx = Get-PrngRange 0 1
+                }
                 $p = Invoke-GenRocketPalette
-                [Console]::Write("{0,3}. " -f $i)
-                Set-RocketColor $p[0]; [Console]::Write('★ ')
-                Set-RocketColor $p[1]; [Console]::Write('★ ')
-                Set-RocketColor $p[2]; [Console]::Write('★ ')
-                Set-RocketColor $p[3]; [Console]::Write('★ ')
-                Set-RocketColor $p[4]; [Console]::Write('★ ')
-                Set-RocketColor $p[5]; [Console]::Write('★')
+                [Console]::Write("{0,4}. " -f $i)
+                if ($hasRockets -and $rktAlive) {
+                    $rktRow = ''
+                    if ($rktSubframe -eq 0) {
+                        $rktRow = ' ^ '
+                    } elseif ($rktSubframe -eq 1) {
+                        $rktRow = '/_\'
+                    } else {
+                        if ($rktFlameIdx -eq 0) { $rktRow = ' v ' } else { $rktRow = ' * ' }
+                    }
+                    for ($s = 0; $s -lt 6; $s++) {
+                        if ($s -eq $rktCol) {
+                            [Console]::Write("{0}[0m{0}[{1}m{2}{0}[0m" -f $global:Esc, $rktAnsi, $rktRow)
+                        } else {
+                            Set-RocketColor $p[$s]; [Console]::Write('★')
+                            if ($s -lt 5) {
+                                $skipSpace = ($s -eq $rktCol - 1) -or ($rktCol -eq 0 -and $s -eq 1)
+                                if (-not $skipSpace) { [Console]::Write(' ') }
+                            }
+                        }
+                    }
+                } else {
+                    Set-RocketColor $p[0]; [Console]::Write('★ ')
+                    Set-RocketColor $p[1]; [Console]::Write('★ ')
+                    Set-RocketColor $p[2]; [Console]::Write('★ ')
+                    Set-RocketColor $p[3]; [Console]::Write('★ ')
+                    Set-RocketColor $p[4]; [Console]::Write('★ ')
+                    Set-RocketColor $p[5]; [Console]::Write('★')
+                }
                 Set-RocketColor normal
                 [Console]::WriteLine("  $($p[0]) $($p[1]) $($p[2]) $($p[3]) $($p[4]) $($p[5])")
+                $true
+                if ($hasRockets) {
+                    if ($rktAlive) {
+                        $rktSubframe++
+                        if ($rktSubframe -ge 3) {
+                            $rktSubframe = 0
+                            $rktFrame++
+                            if ($rktFrame -ge 24) {
+                                $rktAlive = $false
+                                $rktNextLaunch = $i + 200
+                            } else {
+                                $rktNc = $rktCol + $rktDir
+                                if ($rktNc -lt 0 -or $rktNc -gt 4) {
+                                    $rktDir = -$rktDir
+                                    $rktNc = $rktCol + $rktDir
+                                }
+                                $rktCol = $rktNc
+                            }
+                        }
+                    } elseif ($i -ge $rktNextLaunch -and $n - $i -ge 72) {
+                        $rktAlive = $true
+                        $rktCol = 3
+                        $rktFrame = 0
+                        $rktSubframe = 0
+                        $rktFlameIdx = 0
+                        $rktDir = Get-PrngRange 0 1
+                        if ($rktDir -eq 0) { $rktDir = -1 }
+                    }
+                }
             }
             [Console]::WriteLine()
             [Console]::WriteLine('  star show <h1>..<h6>   preview a full rocket')
@@ -1099,15 +1168,51 @@ function star {
             if ($global:_rkt_channel -eq 'cantaloupe') {
                 [Console]::WriteLine('star update stable            switch back to the stable channel')
             }
+            [Console]::WriteLine('star supernova                 remove starcommand from this system')
             [Console]::WriteLine()
             [Console]::WriteLine("  Favorites: $fav_file")
             [Console]::WriteLine("  History:   $hist_file (last 100 launches)")
             [Console]::WriteLine("  Settings:  $(Join-Path $HOME '.config/powershell/rocket_settings.ps1')")
         }
 
+        'supernova' {
+            [Console]::WriteLine('Are you sure you want to uninstall starcommand? [y/N]')
+            $response = [Console]::ReadLine()
+            if ($response -ne 'y' -and $response -ne 'Y') {
+                [Console]::WriteLine('Uninstall cancelled.')
+                return
+            }
+            [Console]::WriteLine('Keep your favorites and history? [Y/n]')
+            $response = [Console]::ReadLine()
+            $keep = $true
+            if ($response -eq 'n' -or $response -eq 'N') { $keep = $false }
+
+            $profilePath = $PROFILE.CurrentUserAllHosts
+            if (Test-Path $profilePath) {
+                $content = Get-Content $profilePath -Raw
+                $cleaned = [regex]::Replace($content, "(?s)\r?\n?# >>> starcommand >>>.*?# <<< starcommand <<<\r?\n?", '')
+                Set-Content -Path $profilePath -Value $cleaned.TrimEnd()
+            }
+            $scriptPath = if ($PSCommandPath) { $PSCommandPath } else { $MyInvocation.MyCommand.Source }
+            if ($scriptPath -and (Test-Path $scriptPath)) { Remove-Item $scriptPath -Force }
+            Remove-Item $script:RktUpdateCache -Force -ErrorAction SilentlyContinue
+
+            $profileDir = Split-Path $PROFILE.CurrentUserAllHosts -Parent
+            if ($keep) {
+                [Console]::WriteLine("starcommand uninstalled. Favorites, history, and settings kept at $profileDir")
+            } else {
+                Remove-Item -Force -ErrorAction SilentlyContinue -Path @(
+                    (Join-Path $profileDir 'rocket_favorites.txt'),
+                    (Join-Path $profileDir 'rocket_history.txt'),
+                    (Join-Path $profileDir 'rocket_settings.ps1')
+                )
+                [Console]::WriteLine('starcommand has been uninstalled.')
+            }
+        }
+
         default {
             [Console]::WriteLine("Unknown subcommand: $cmd")
-            [Console]::WriteLine('Try: star, star list, star show, star add, star explore, star color, star weight, star help')
+            [Console]::WriteLine('Try: star, star list, star show, star add, star explore, star color, star weight, star update, star supernova, star help')
         }
     }
 }
