@@ -479,7 +479,7 @@ _star_preview_palette() {
   typeset -g -a _rocket_stars=("${saved_stars[@]}")
 }
 
-# ── Rocket easter egg ──────────────────────────────────────────────────────────
+# ── Explore animation ─────────────────────────────────────────────────────────
 
 typeset -g -a _RKT_ROCKET_PIDS=()
 
