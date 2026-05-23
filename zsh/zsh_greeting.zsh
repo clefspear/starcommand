@@ -3,7 +3,7 @@
 # Deterministic rocket + starfield greeting for zsh
 # Ported from fish_greeting.fish
 
-_RKT_VERSION="1.2.0"
+_RKT_VERSION="1.2.3-cantaloupe"
 _RKT_UPDATE_CACHE="$HOME/.config/zsh/rocket_update_check"
 
 _rkt_update_check_background() {
