@@ -2,6 +2,10 @@
 
 All notable changes to starcommand are documented here.
 
+## [1.2.0] — 2026-05-23
+
+- Internal refactor of star update
+
 ## [1.1.0] — 2026-05-23
 
 - Extended `star add` to accept any positive multiple of 6 hex codes,

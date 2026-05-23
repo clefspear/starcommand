@@ -3,7 +3,7 @@
 # Deterministic rocket + starfield greeting for zsh
 # Ported from fish_greeting.fish
 
-_RKT_VERSION="1.1.0"
+_RKT_VERSION="1.2.0"
 _RKT_UPDATE_CACHE="$HOME/.config/zsh/rocket_update_check"
 
 _rkt_update_check_background() {
@@ -26,7 +26,10 @@ _rkt_update_check_background() {
       return
     fi
   fi
-  ( curl -fsSL --max-time 3 "https://raw.githubusercontent.com/clefspear/starcommand/main/VERSION" 2>/dev/null \
+  local branch="main"
+  _rkt_load_settings
+  [[ "$_rkt_channel" == "cantaloupe" ]] && branch="cantaloupe"
+  ( curl -fsSL --max-time 3 "https://raw.githubusercontent.com/clefspear/starcommand/${branch}/VERSION" 2>/dev/null \
       | { IFS= read -r v; printf '%s\n%s\n' "$now" "${v:-}"; } \
       > "$_RKT_UPDATE_CACHE" ) 2>/dev/null &
   disown
@@ -149,6 +152,7 @@ _rkt_load_settings() {
   typeset -g _rkt_favorite_star_mode=gold
   typeset -g _rkt_terminal_theme=dark
   typeset -g _rkt_favorite_weight=20
+  typeset -g _rkt_channel=main
   typeset -g _RKT_AUTO_UPDATE_CHECK=""
   [[ -f "$cfg" ]] && source "$cfg"
 }
@@ -161,6 +165,7 @@ _rkt_save_settings() {
   printf 'typeset -g _rkt_favorite_star_mode=%s\n' "${(q)_rkt_favorite_star_mode}" >> "$cfg"
   printf 'typeset -g _rkt_terminal_theme=%s\n'     "${(q)_rkt_terminal_theme}"     >> "$cfg"
   printf 'typeset -g _rkt_favorite_weight=%s\n'    "${(q)_rkt_favorite_weight}"    >> "$cfg"
+  printf 'typeset -g _rkt_channel=%s\n'            "${(q)_rkt_channel}"            >> "$cfg"
   printf 'typeset -g _RKT_AUTO_UPDATE_CHECK=%s\n'  "${(q)_RKT_AUTO_UPDATE_CHECK}"  >> "$cfg"
 }
 
@@ -784,11 +789,28 @@ star() {
       esac
       ;;
     update)
+      if [[ "$2" == "cantaloupe" ]]; then
+        _rkt_load_settings
+        typeset -g _rkt_channel=cantaloupe
+        _rkt_save_settings
+        echo "Switched to cantaloupe channel. Use 'star update' to pull the latest cantaloupe build."
+        return 0
+      fi
+      if [[ "$2" == "stable" ]]; then
+        _rkt_load_settings
+        typeset -g _rkt_channel=main
+        _rkt_save_settings
+        echo "Switched to the stable channel."
+        return 0
+      fi
       if ! command -v curl >/dev/null 2>&1; then
         echo "curl is required for star update."
         return 1
       fi
-      local remote_version=$(curl -fsSL --max-time 5 "https://raw.githubusercontent.com/clefspear/starcommand/main/VERSION" 2>/dev/null)
+      _rkt_load_settings
+      local branch="main"
+      [[ "$_rkt_channel" == "cantaloupe" ]] && branch="cantaloupe"
+      local remote_version=$(curl -fsSL --max-time 5 "https://raw.githubusercontent.com/clefspear/starcommand/${branch}/VERSION" 2>/dev/null)
       if [[ -z $remote_version ]]; then
         echo "Failed to check for updates. Visit https://github.com/clefspear/starcommand/releases"
         return 1
@@ -810,7 +832,9 @@ star() {
       fi
       local temp_file
       temp_file=$(mktemp 2>/dev/null) || temp_file="/tmp/starcommand_update.$$"
-      local dl_url="https://raw.githubusercontent.com/clefspear/starcommand/v${remote_version}/zsh/zsh_greeting.zsh"
+      local tag="${remote_version}"
+      [[ "$branch" == "cantaloupe" ]] && tag="${remote_version}-cantaloupe"
+      local dl_url="https://raw.githubusercontent.com/clefspear/starcommand/v${tag}/zsh/zsh_greeting.zsh"
       echo "Downloading: $dl_url"
       local http_code
       http_code=$(curl -sS -L --max-time 10 -w '%{http_code}' -o "$temp_file" "$dl_url" 2>/dev/null)
@@ -829,7 +853,11 @@ star() {
 
     help|-h|--help)
       _rkt_load_settings
-      echo "starcommand v$_RKT_VERSION"
+      if [[ "$_rkt_channel" == "cantaloupe" ]]; then
+        echo "starcommand v${_RKT_VERSION}-cantaloupe"
+      else
+        echo "starcommand v$_RKT_VERSION"
+      fi
       echo ''
       echo "star                          save current palette to favorites"
       echo "star list                     show all favorites"
@@ -861,6 +889,9 @@ star() {
       echo "star color reset              restore defaults"
       echo ''
       echo "star update                   update to the latest version"
+      if [[ "$_rkt_channel" == "cantaloupe" ]]; then
+        echo "star update stable            switch back to the stable channel"
+      fi
       echo ''
       echo "  Favorites: $fav_file"
       echo "  History:   $hist_file (last 100 launches)"

@@ -1,5 +1,5 @@
 # Created By: Peter Azmy
-set -g _RKT_VERSION "1.1.0"
+set -g _RKT_VERSION "1.2.0"
 set -g _RKT_UPDATE_CACHE ~/.config/fish/rocket_update_check
 
 function _rkt_update_check_background --description "Background weekly version check"
@@ -20,8 +20,11 @@ function _rkt_update_check_background --description "Background weekly version c
             return
         end
     end
+    set --local branch "main"
+    _rkt_load_settings
+    test "$_rkt_channel" = "cantaloupe"; and set branch "cantaloupe"
     begin
-        set --local v (curl -fsSL --max-time 3 "https://raw.githubusercontent.com/clefspear/starcommand/main/VERSION" 2>/dev/null)
+        set --local v (curl -fsSL --max-time 3 "https://raw.githubusercontent.com/clefspear/starcommand/$branch/VERSION" 2>/dev/null)
         printf '%s\n%s\n' "$now" "$v" > $_RKT_UPDATE_CACHE
     end &
 end
@@ -108,6 +111,7 @@ function _rkt_load_settings --description "Load star color settings; defaults if
     set --global _rkt_favorite_star_mode gold
     set --global _rkt_terminal_theme dark
     set --global _rkt_favorite_weight 20
+    set --global _rkt_channel main
     set --global _RKT_AUTO_UPDATE_CHECK ""
     if test -f $cfg
         source $cfg
@@ -122,6 +126,7 @@ function _rkt_save_settings --description "Persist star color settings"
     printf 'set -g _rkt_favorite_star_mode %s\n' (string escape -- "$_rkt_favorite_star_mode") >> $cfg
     printf 'set -g _rkt_terminal_theme %s\n'     (string escape -- "$_rkt_terminal_theme")     >> $cfg
     printf 'set -g _rkt_favorite_weight %s\n'    (string escape -- "$_rkt_favorite_weight")    >> $cfg
+    printf 'set -g _rkt_channel %s\n'            (string escape -- "$_rkt_channel")            >> $cfg
     printf 'set -g _RKT_AUTO_UPDATE_CHECK %s\n'  (string escape -- "$_RKT_AUTO_UPDATE_CHECK")  >> $cfg
 end
 
@@ -763,11 +768,28 @@ function star --description "Save / browse / preview rocket palettes"
             end
 
         case update
+            if test (count $argv) -ge 2; and test "$argv[2]" = "cantaloupe"
+                _rkt_load_settings
+                set --global _rkt_channel cantaloupe
+                _rkt_save_settings
+                echo "Switched to cantaloupe channel. Use 'star update' to pull the latest cantaloupe build."
+                return 0
+            end
+            if test (count $argv) -ge 2; and test "$argv[2]" = "stable"
+                _rkt_load_settings
+                set --global _rkt_channel main
+                _rkt_save_settings
+                echo "Switched to the stable channel."
+                return 0
+            end
             if not command -q curl
                 echo "curl is required for star update."
                 return 1
             end
-            set --local remote_version (curl -fsSL --max-time 5 "https://raw.githubusercontent.com/clefspear/starcommand/main/VERSION" 2>/dev/null)
+            _rkt_load_settings
+            set --local branch "main"
+            test "$_rkt_channel" = "cantaloupe"; and set branch "cantaloupe"
+            set --local remote_version (curl -fsSL --max-time 5 "https://raw.githubusercontent.com/clefspear/starcommand/$branch/VERSION" 2>/dev/null)
             if test -z "$remote_version"
                 echo "Failed to check for updates. Visit https://github.com/clefspear/starcommand/releases"
                 return 1
@@ -787,7 +809,9 @@ function star --description "Save / browse / preview rocket palettes"
                 echo "Cannot determine script path. Update manually."
                 return 1
             end
-            set --local dl_url "https://raw.githubusercontent.com/clefspear/starcommand/v$remote_version/fish/fish_greeting.fish"
+            set --local tag "$remote_version"
+            test "$branch" = "cantaloupe"; and set tag "$remote_version-cantaloupe"
+            set --local dl_url "https://raw.githubusercontent.com/clefspear/starcommand/v$tag/fish/fish_greeting.fish"
             echo "Downloading: $dl_url"
             set --local temp_file (mktemp 2>/dev/null; or echo /tmp/starcommand_update.$fish_pid)
             set --local http_code (curl -sS -L --max-time 10 -w "%{http_code}" -o "$temp_file" "$dl_url" 2>/dev/null)
@@ -805,7 +829,11 @@ function star --description "Save / browse / preview rocket palettes"
 
         case help -h --help
             _rkt_load_settings
-            echo "starcommand v$_RKT_VERSION"
+            if test "$_rkt_channel" = "cantaloupe"
+                echo "starcommand v$_RKT_VERSION-cantaloupe"
+            else
+                echo "starcommand v$_RKT_VERSION"
+            end
             echo ""
             echo "star                          save current palette to favorites"
             echo "star list                     show all favorites"
@@ -837,6 +865,9 @@ function star --description "Save / browse / preview rocket palettes"
             echo "star color reset              restore defaults"
             echo ""
             echo "star update                   update to the latest version"
+            if test "$_rkt_channel" = "cantaloupe"
+                echo "star update stable            switch back to the stable channel"
+            end
             echo ""
             echo "  Favorites: $fav_file"
             echo "  History:   $hist_file (last 100 launches)"
