@@ -2,6 +2,10 @@
 
 All notable changes to starcommand are documented here.
 
+## [1.2.2] — 2026-05-23
+
+- Added visual effect to star explore
+
 ## [1.2.1] — 2026-05-23
 
 - Added star supernova command

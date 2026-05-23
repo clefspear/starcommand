@@ -479,6 +479,88 @@ _star_preview_palette() {
   typeset -g -a _rocket_stars=("${saved_stars[@]}")
 }
 
+# ── Rocket easter egg ──────────────────────────────────────────────────────────
+
+typeset -g -a _RKT_ROCKET_PIDS=()
+
+_rkt_rocket_cleanup() {
+  emulate -L zsh
+  local pid
+  for pid in "${_RKT_ROCKET_PIDS[@]}"; do
+    kill "$pid" 2>/dev/null
+  done
+  _RKT_ROCKET_PIDS=()
+  _rkt_set_color normal
+  printf '\e[?25h'
+}
+
+_rkt_launch_rocket() {
+  emulate -L zsh
+  local i=$1
+  local prefix=$(printf "%3d. " "$i")
+  local prefix_len=${#prefix}
+  _rkt_prng_range 0 5; local col_idx=$_RKT_PRNG_RET
+  local term_col=$((prefix_len + 1 + col_idx * 2))
+  local term_rows=$(tput lines 2>/dev/null || echo 24)
+  local term_cols=$(tput cols 2>/dev/null || echo 80)
+  local start_row=$((term_rows > 2 ? term_rows - 1 : term_rows))
+  _rkt_prng_range 0 1
+  local dir=$_RKT_PRNG_RET
+  [[ $dir -eq 0 ]] && dir=-1
+
+  local rhex="FFFFFF" red=255 green=255 blue=255
+  if [[ "$_rkt_terminal_theme" == "light" ]]; then
+    rhex="333333"; red=51; green=51; blue=51
+  fi
+
+  (
+    local row=$start_row
+    local col=$term_col
+    local d=$dir
+    local moved=false
+
+    printf '\e[s\e[%d;%dH\e[38;2;%d;%d;%dm|\e[m\e[u' "$row" "$col" "$red" "$green" "$blue"
+
+    while (( row > 1 )); do
+      sleep 0.1
+
+      if $moved; then
+        printf '\e[s\e[%d;%dH \e[%d;%dH \e[u' "$row" "$col" "$((row+1))" "$col"
+      else
+        printf '\e[s\e[%d;%dH \e[u' "$row" "$col"
+      fi
+
+      local nr=$((row - 1))
+      local nc=$((col + d))
+      if (( nc < 2 || nc >= term_cols )); then
+        d=$(( -d ))
+        nc=$((col + d))
+      fi
+      row=$nr; col=$nc
+      moved=true
+
+      printf '\e[s\e[%d;%dH\e[38;2;%d;%d;%dm|\e[m\e[u' "$row" "$col" "$red" "$green" "$blue"
+
+      local nf=3
+      _rkt_prng_range 3 4; nf=$_RKT_PRNG_RET
+      local fi
+      for ((fi=0; fi<nf; fi++)); do
+        sleep 0.025
+        local rb ch
+        rb=$(od -An -N1 -tu1 /dev/urandom 2>/dev/null | tr -d ' ')
+        rb=$(( rb % 3 ))
+        case $rb in
+          0) ch='^' ;; 1) ch='*' ;; *) ch='v' ;;
+        esac
+        printf '\e[s\e[%d;%dH\e[38;2;%d;%d;%dm%s\e[m\e[u' "$((row+1))" "$col" "$red" "$green" "$blue" "$ch"
+      done
+    done
+
+    printf '\e[s\e[%d;%dH \e[%d;%dH \e[u' 1 "$col" 2 "$col"
+  ) &
+  _RKT_ROCKET_PIDS+=($!)
+}
+
 star() {
   emulate -L zsh
   local fav_file="$HOME/.config/zsh/rocket_favorites.txt"
@@ -671,6 +753,13 @@ star() {
       if (( $# >= 2 )) && [[ "$2" =~ '^[0-9]+$' ]]; then
         n="$2"
       fi
+      local has_rockets=false
+      if (( n >= 800 )); then
+        has_rockets=true
+        _rkt_load_settings
+        typeset -g -a _RKT_ROCKET_PIDS=()
+        trap '_rkt_rocket_cleanup; trap - INT; printf "\e[?25h"; kill -INT $$' INT
+      fi
       echo ''
       for ((i=1; i<=n; i++)); do
         _rkt_prng_seed
@@ -684,7 +773,14 @@ star() {
         _rkt_set_color "$p[6]"; printf '★'
         _rkt_set_color normal
         printf '  %s %s %s %s %s %s\n' "${p[@]}"
+        if $has_rockets && (( i % 150 == 0 )); then
+          _rkt_launch_rocket "$i"
+        fi
       done
+      if $has_rockets; then
+        trap - INT
+        _rkt_rocket_cleanup
+      fi
       echo ''
       echo "  star show <h1>..<h6>   preview a full rocket"
       echo "  star add  <h1>..<h6> [<h1>..<h6> ...]   save palette(s) to favorites"

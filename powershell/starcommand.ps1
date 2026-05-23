@@ -861,18 +861,99 @@ function star {
             if ($args.Count -ge 2 -and $args[1] -match '^\d+$') {
                 $n = [int]$args[1]
             }
+
+            $hasRockets = $false
+            $rocketTasks = $null
+            if ($n -ge 800) {
+                $hasRockets = $true
+                Invoke-LoadSettings
+                $rocketTasks = [System.Collections.Generic.List[System.Threading.Tasks.Task]]::new()
+            }
+
             [Console]::WriteLine()
-            for ($i = 1; $i -le $n; $i++) {
-                $p = Invoke-GenRocketPalette
-                [Console]::Write("{0,3}. " -f $i)
-                Set-RocketColor $p[0]; [Console]::Write('★ ')
-                Set-RocketColor $p[1]; [Console]::Write('★ ')
-                Set-RocketColor $p[2]; [Console]::Write('★ ')
-                Set-RocketColor $p[3]; [Console]::Write('★ ')
-                Set-RocketColor $p[4]; [Console]::Write('★ ')
-                Set-RocketColor $p[5]; [Console]::Write('★')
-                Set-RocketColor normal
-                [Console]::WriteLine("  $($p[0]) $($p[1]) $($p[2]) $($p[3]) $($p[4]) $($p[5])")
+            try {
+                for ($i = 1; $i -le $n; $i++) {
+                    $p = Invoke-GenRocketPalette
+                    [Console]::Write("{0,3}. " -f $i)
+                    Set-RocketColor $p[0]; [Console]::Write('★ ')
+                    Set-RocketColor $p[1]; [Console]::Write('★ ')
+                    Set-RocketColor $p[2]; [Console]::Write('★ ')
+                    Set-RocketColor $p[3]; [Console]::Write('★ ')
+                    Set-RocketColor $p[4]; [Console]::Write('★ ')
+                    Set-RocketColor $p[5]; [Console]::Write('★')
+                    Set-RocketColor normal
+                    [Console]::WriteLine("  $($p[0]) $($p[1]) $($p[2]) $($p[3]) $($p[4]) $($p[5])")
+
+                    if ($hasRockets -and ($i % 150) -eq 0) {
+                        $prefix = "{0,3}. " -f $i
+                        $prefixLen = $prefix.Length
+                        $colIdx = Get-PrngRange 0 5
+                        $termCol = $prefixLen + 1 + $colIdx * 2
+                        $termRows = [Console]::WindowHeight
+                        $termCols = [Console]::WindowWidth
+                        $startRow = [Math]::Max(1, $termRows - 1)
+                        $dir = Get-PrngRange 0 1
+                        if ($dir -eq 0) { $dir = -1 }
+
+                        $r = 255; $g = 255; $b = 255
+                        if ($global:_rkt_terminal_theme -eq 'light') { $r = 51; $g = 51; $b = 51 }
+
+                        $cr = $r; $cg = $g; $cb = $b
+                        $ccol = $termCol; $cdir = $dir; $crow = $startRow; $ctw = $termCols
+
+                        $sb = {
+                            $row = $crow; $col = $ccol; $d = $cdir; $tw = $ctw
+                            $r = $cr; $g = $cg; $b = $cb
+                            $moved = $false
+
+                            [Console]::Write("`e[s`e[$row;${col}H`e[38;2;${r};${g};${b}m|`e[m`e[u")
+
+                            while ($row -gt 1) {
+                                Start-Sleep -Milliseconds 100
+
+                                if ($moved) {
+                                    [Console]::Write("`e[s`e[$row;${col}H `e[$($row+1);${col}H `e[u")
+                                } else {
+                                    [Console]::Write("`e[s`e[$row;${col}H `e[u")
+                                }
+
+                                $nr = $row - 1
+                                $nc = $col + $d
+                                if ($nc -lt 2 -or $nc -ge $tw) {
+                                    $d = -$d
+                                    $nc = $col + $d
+                                }
+                                $row = $nr; $col = $nc
+                                $moved = $true
+
+                                [Console]::Write("`e[s`e[$row;${col}H`e[38;2;${r};${g};${b}m|`e[m`e[u")
+
+                                $nf = Get-PrngRange 3 4
+                                for ($fi = 0; $fi -lt $nf; $fi++) {
+                                    $rb = Get-PrngRange 0 2
+                                    $ch = @('^', '*', 'v')[$rb]
+                                    [Console]::Write("`e[s`e[$($row+1);${col}H`e[38;2;${r};${g};${b}m${ch}`e[m`e[u")
+                                    Start-Sleep -Milliseconds 25
+                                }
+                            }
+                            [Console]::Write("`e[s`e[1;${col}H `e[2;${col}H `e[u")
+                        }.GetNewClosure()
+                        $task = [System.Threading.Tasks.Task]::Run($sb)
+                        $rocketTasks.Add($task)
+                    }
+                }
+            } finally {
+                if ($hasRockets) {
+                    [Console]::Write("`e[?25h")
+                    Set-RocketColor normal
+                    if ($rocketTasks) {
+                        foreach ($t in $rocketTasks) {
+                            if ($t -and (-not $t.IsCompleted)) {
+                                $null = $t
+                            }
+                        }
+                    }
+                }
             }
             [Console]::WriteLine()
             [Console]::WriteLine('  star show <h1>..<h6>   preview a full rocket')

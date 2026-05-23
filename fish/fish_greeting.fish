@@ -439,6 +439,11 @@ function _star_preview_palette --description "Render rocket art with a temporary
     set --global _rocket_stars $saved_stars
 end
 
+function _rkt_rocket_cleanup --description "Reset terminal after Ctrl-C"
+    set_color normal
+    printf '\e[?25h'
+end
+
 
 function star --description "Save / browse / preview rocket palettes"
     set --local fav_file ~/.config/fish/rocket_favorites.txt
@@ -647,6 +652,17 @@ function star --description "Save / browse / preview rocket palettes"
                 set n $argv[2]
             end
 
+            set --local has_rockets false
+            if test $n -ge 800
+                set has_rockets true
+                _rkt_load_settings
+                set --local rocket_row
+                set --local rocket_col
+                set --local rocket_dir
+                set --local rocket_moved
+                trap '_rkt_rocket_cleanup; trap - INT; kill -INT %self' INT
+            end
+
             echo ""
             for i in (seq $n)
                 set --local p (_gen_rocket_palette)
@@ -659,7 +675,109 @@ function star --description "Save / browse / preview rocket palettes"
                 set_color $p[6]; echo -n "★"
                 set_color normal
                 echo "  $p[1] $p[2] $p[3] $p[4] $p[5] $p[6]"
+
+                if $has_rockets
+                    if test (math "$i % 150") -eq 0
+                        set --local prefix (printf "%3d. " $i)
+                        set --local prefix_len (string length -- "$prefix")
+                        set --local col_idx (_rkt_prng_range 0 5)
+                        set --local term_col (math "$prefix_len + 1 + $col_idx * 2")
+                        set --local term_rows (tput lines 2>/dev/null; or echo 24)
+                        set --local term_cols (tput cols 2>/dev/null; or echo 80)
+                        set --local start_row (math "$term_rows - 1")
+                        set --local dir (_rkt_prng_range 0 1)
+                        if test $dir -eq 0; set dir -1; end
+
+                        if test "$_rkt_terminal_theme" = light
+                            printf '\e[38;2;51;51;51m'
+                        else
+                            printf '\e[38;2;255;255;255m'
+                        end
+                        printf '\e[%d;%dH|\e[m' $start_row $term_col
+
+                        set --append rocket_row $start_row
+                        set --append rocket_col $term_col
+                        set --append rocket_dir $dir
+                        set --append rocket_moved false
+                    end
+
+                    set --local ri 1
+                    while test $ri -le (count $rocket_row)
+                        set --local row $rocket_row[$ri]
+                        set --local col $rocket_col[$ri]
+                        set --local dir $rocket_dir[$ri]
+                        set --local moved $rocket_moved[$ri]
+
+                        set --local term_rows (tput lines 2>/dev/null; or echo 24)
+                        set --local term_cols (tput cols 2>/dev/null; or echo 80)
+
+                        if test $row -le 1
+                            printf '\e[%d;%dH \e[%d;%dH ' $row $col (math "$row + 1") $col
+                            set --erase rocket_row[$ri]
+                            set --erase rocket_col[$ri]
+                            set --erase rocket_dir[$ri]
+                            set --erase rocket_moved[$ri]
+                            continue
+                        end
+
+                        # Clear old body and flame
+                        if $moved
+                            printf '\e[%d;%dH \e[%d;%dH ' $row $col (math "$row + 1") $col
+                        else
+                            printf '\e[%d;%dH ' $row $col
+                        end
+
+                        # Move
+                        set --local nr (math "$row - 1")
+                        set --local nc (math "$col + $dir")
+                        if test $nc -lt 2 -o $nc -ge $term_cols
+                            set dir (math "-$dir")
+                            set nc (math "$col + $dir")
+                        end
+
+                        set rocket_row[$ri] $nr
+                        set rocket_col[$ri] $nc
+                        set rocket_dir[$ri] $dir
+                        set rocket_moved[$ri] true
+                        set row $nr; set col $nc
+
+                        if test "$_rkt_terminal_theme" = light
+                            printf '\e[38;2;51;51;51m'
+                        else
+                            printf '\e[38;2;255;255;255m'
+                        end
+                        printf '\e[%d;%dH|\e[m' $row $col
+
+                        # Flame flickers 3-4 times
+                        set --local nf (_rkt_prng_range 3 4)
+                        for fi in (seq $nf)
+                            set --local rb (random 0 2)
+                            set --local ch '^'
+                            if test $rb -eq 1; set ch '*'; end
+                            if test $rb -eq 2; set ch 'v'; end
+
+                            if test "$_rkt_terminal_theme" = light
+                                printf '\e[38;2;51;51;51m'
+                            else
+                                printf '\e[38;2;255;255;255m'
+                            end
+                            printf '\e[%d;%dH%s\e[m' (math "$row + 1") $col $ch
+                        end
+
+                        set ri (math "$ri + 1")
+                    end
+                end
             end
+
+            if $has_rockets
+                trap - INT
+                set --local ri 1
+                while test $ri -le (count $rocket_row)
+                    printf '\e[%d;%dH \e[%d;%dH ' $rocket_row[$ri] $rocket_col[$ri] (math "$rocket_row[$ri] + 1") $rocket_col[$ri]
+                    set ri (math "$ri + 1")
+                end
+            end
+
             echo ""
             echo "  star show <h1>..<h6>   preview a full rocket"
             echo "  star add  <h1>..<h6> [<h1>..<h6> ...]   save palette(s) to favorites"

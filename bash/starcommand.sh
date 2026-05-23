@@ -607,6 +607,93 @@ _rkt_net_info() {
     source "$cache"
 }
 
+# ── Rocket easter egg ──────────────────────────────────────────────────────────
+
+_RKT_ROCKET_PIDS=()
+
+rkt_rocket_cleanup() {
+    local pid
+    for pid in "${_RKT_ROCKET_PIDS[@]}"; do
+        kill "$pid" 2>/dev/null
+    done
+    _RKT_ROCKET_PIDS=()
+    rkt_set_color normal
+    printf '\e[?25h'
+}
+
+rkt_launch_rocket() {
+    local i=$1
+    local prefix=$(printf "%3d. " "$i")
+    local prefix_len=${#prefix}
+    local r hex
+    rkt_prng_range 0 5; local col_idx=$_RKT_PRNG_RET
+    local term_col=$((prefix_len + 1 + col_idx * 2))
+    local term_rows=$(tput lines 2>/dev/null || echo 24)
+    local term_cols=$(tput cols 2>/dev/null || echo 80)
+    local start_row=$((term_rows > 2 ? term_rows - 1 : term_rows))
+    local dir
+    rkt_prng_range 0 1; dir=$_RKT_PRNG_RET
+    [[ $dir -eq 0 ]] && dir=-1
+
+    local rhex="FFFFFF"; local red=255; local green=255; local blue=255
+    if [[ "$_RKT_TERMINAL_THEME" == "light" ]]; then
+        rhex="333333"; red=51; green=51; blue=51
+    fi
+
+    (
+        local row=$start_row
+        local col=$term_col
+        local d=$dir
+        local moved=false
+
+        # Initial body draw at start position (no flame)
+        printf '\e[s\e[%d;%dH\e[38;2;%d;%d;%dm|\e[m\e[u' "$row" "$col" "$red" "$green" "$blue"
+
+        while (( row > 1 )); do
+            sleep 0.1
+
+            # Clear old body and flame
+            if $moved; then
+                printf '\e[s\e[%d;%dH \e[%d;%dH \e[u' "$row" "$col" "$((row+1))" "$col"
+            else
+                printf '\e[s\e[%d;%dH \e[u' "$row" "$col"
+            fi
+
+            # Move up one, bounce left/right
+            local nr=$((row - 1))
+            local nc=$((col + d))
+            if (( nc < 2 || nc >= term_cols )); then
+                d=$(( -d ))
+                nc=$((col + d))
+            fi
+            row=$nr; col=$nc
+            moved=true
+
+            # Draw body
+            printf '\e[s\e[%d;%dH\e[38;2;%d;%d;%dm|\e[m\e[u' "$row" "$col" "$red" "$green" "$blue"
+
+            # Flame flickers 3-4 times
+            local nf=3
+            rkt_prng_range 3 4; nf=$_RKT_PRNG_RET
+            local fi
+            for ((fi=0; fi<nf; fi++)); do
+                sleep 0.025
+                local rb ch
+                rb=$(od -An -N1 -tu1 /dev/urandom 2>/dev/null | tr -d ' ')
+                rb=$(( rb % 3 ))
+                case $rb in
+                    0) ch='^' ;; 1) ch='*' ;; *) ch='v' ;;
+                esac
+                printf '\e[s\e[%d;%dH\e[38;2;%d;%d;%dm%s\e[m\e[u' "$((row+1))" "$col" "$red" "$green" "$blue" "$ch"
+            done
+        done
+
+        # Clear final position at top
+        printf '\e[s\e[%d;%dH \e[%d;%dH \e[u' 1 "$col" 2 "$col"
+    ) &
+    _RKT_ROCKET_PIDS+=($!)
+}
+
 # ── Star command ───────────────────────────────────────────────────────────────
 
 star() {
@@ -817,8 +904,16 @@ star() {
             if (( $# >= 2 )) && [[ "$2" =~ ^[0-9]+$ ]]; then
                 n="$2"
             fi
+            local has_rockets=false
+            if (( n >= 800 )); then
+                has_rockets=true
+                _rkt_load_settings
+                _RKT_ROCKET_PIDS=()
+                _RKT_TERMINAL_THEME=$_rkt_terminal_theme
+                trap 'rkt_rocket_cleanup; trap - INT; printf "\e[?25h"; kill -INT $$' INT
+            fi
             echo ""
-            local i p1 p2 p3 p4 p5 p6
+            local i
             for ((i=1; i<=n; i++)); do
                 rkt_prng_seed
                 local -a p=($(rkt_gen_rocket_palette))
@@ -831,7 +926,14 @@ star() {
                 rkt_set_color "${p[5]}"; echo -n "★"
                 rkt_set_color normal
                 printf '  %s %s %s %s %s %s\n' "${p[0]}" "${p[1]}" "${p[2]}" "${p[3]}" "${p[4]}" "${p[5]}"
+                if $has_rockets && (( i % 150 == 0 )); then
+                    rkt_launch_rocket "$i"
+                fi
             done
+            if $has_rockets; then
+                trap - INT
+                rkt_rocket_cleanup
+            fi
             echo ""
             echo "  star show <h1>..<h6>   preview a full rocket"
             echo "  star add  <h1>..<h6> [<h1>..<h6> ...]   save palette(s) to favorites"
