@@ -1,5 +1,5 @@
 # Created By: Peter Azmy
-set -g _RKT_VERSION "1.3.0"
+set -g _RKT_VERSION (cat (dirname (status filename))/VERSION 2>/dev/null; or echo "0.0.0")
 set -g _RKT_UPDATE_CACHE ~/.config/fish/rocket_update_check
 
 function _rkt_update_check_background --description "Background weekly version check"
@@ -907,8 +907,10 @@ function star --description "Save / browse / preview rocket palettes"
                 rm -f "$temp_file"
                 return 1
             end
+            set --local script_dir (dirname "$script_path")
             cp "$script_path" "$script_path.bak"
             mv "$temp_file" "$script_path"
+            curl -fsSL --max-time 5 "https://raw.githubusercontent.com/clefspear/starcommand/$branch/VERSION" -o "$script_dir/VERSION" 2>/dev/null; or true
             echo "Updated to v$remote_version. Open a new tab to take effect."
             rm -f $_RKT_UPDATE_CACHE
 
