@@ -1087,9 +1087,7 @@ star() {
             fi
             local temp_file
             temp_file=$(mktemp 2>/dev/null) || temp_file="/tmp/starcommand_update.$$"
-            local tag="${remote_version}"
-            [[ "$branch" == "cantaloupe" ]] && tag="${remote_version}-cantaloupe"
-            local dl_url="https://raw.githubusercontent.com/clefspear/starcommand/v${tag}/bash/starcommand.sh"
+            local dl_url="https://raw.githubusercontent.com/clefspear/starcommand/${branch}/bash/starcommand.sh"
             echo "Downloading: $dl_url"
             local http_code
             http_code=$(curl -sS -L --max-time 10 -w '%{http_code}' -o "$temp_file" "$dl_url" 2>/dev/null)

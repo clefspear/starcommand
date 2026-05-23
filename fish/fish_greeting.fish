@@ -927,9 +927,7 @@ function star --description "Save / browse / preview rocket palettes"
                 echo "Cannot determine script path. Update manually."
                 return 1
             end
-            set --local tag "$remote_version"
-            test "$branch" = "cantaloupe"; and set tag "$remote_version-cantaloupe"
-            set --local dl_url "https://raw.githubusercontent.com/clefspear/starcommand/v$tag/fish/fish_greeting.fish"
+            set --local dl_url "https://raw.githubusercontent.com/clefspear/starcommand/$branch/fish/fish_greeting.fish"
             echo "Downloading: $dl_url"
             set --local temp_file (mktemp 2>/dev/null; or echo /tmp/starcommand_update.$fish_pid)
             set --local http_code (curl -sS -L --max-time 10 -w "%{http_code}" -o "$temp_file" "$dl_url" 2>/dev/null)

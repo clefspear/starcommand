@@ -1109,9 +1109,7 @@ function star {
                 return
             }
             $tempFile = [System.IO.Path]::GetTempFileName()
-            $tag = $remoteVersion
-            if ($branch -eq 'cantaloupe') { $tag = "$remoteVersion-cantaloupe" }
-            $dlUrl = "https://raw.githubusercontent.com/clefspear/starcommand/v$tag/powershell/starcommand.ps1"
+            $dlUrl = "https://raw.githubusercontent.com/clefspear/starcommand/$branch/powershell/starcommand.ps1"
             [Console]::WriteLine("Downloading: $dlUrl")
             $httpCode = ""
             try {
