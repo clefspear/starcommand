@@ -3,7 +3,7 @@
 # starcommand.sh — Portable rocket greeting for Bash
 # Implements xorshift32 PRNG for cross-shell deterministic output
 
-_RKT_VERSION="1.2.0"
+_RKT_VERSION="1.2.1"
 _RKT_UPDATE_CACHE="$HOME/.config/bash/rocket_update_check"
 
 _rkt_update_check_background() {
@@ -985,9 +985,7 @@ star() {
             fi
             local temp_file
             temp_file=$(mktemp 2>/dev/null) || temp_file="/tmp/starcommand_update.$$"
-            local tag="${remote_version}"
-            [[ "$branch" == "cantaloupe" ]] && tag="${remote_version}-cantaloupe"
-            local dl_url="https://raw.githubusercontent.com/clefspear/starcommand/v${tag}/bash/starcommand.sh"
+            local dl_url="https://raw.githubusercontent.com/clefspear/starcommand/${branch}/bash/starcommand.sh"
             echo "Downloading: $dl_url"
             local http_code
             http_code=$(curl -sS -L --max-time 10 -w '%{http_code}' -o "$temp_file" "$dl_url" 2>/dev/null)

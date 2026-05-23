@@ -3,7 +3,7 @@
 # Implements xorshift32 PRNG for cross-shell deterministic output
 # Works in PowerShell 5.1+ and PowerShell 7+
 
-$script:RktVersion = '1.2.0'
+$script:RktVersion = '1.2.1'
 $script:RktUpdateCache = Join-Path $HOME '.config/powershell/rocket_update_check'
 
 function Invoke-UpdateCheckBackground {
@@ -1029,9 +1029,7 @@ function star {
                 return
             }
             $tempFile = [System.IO.Path]::GetTempFileName()
-            $tag = $remoteVersion
-            if ($branch -eq 'cantaloupe') { $tag = "$remoteVersion-cantaloupe" }
-            $dlUrl = "https://raw.githubusercontent.com/clefspear/starcommand/v$tag/powershell/starcommand.ps1"
+            $dlUrl = "https://raw.githubusercontent.com/clefspear/starcommand/$branch/powershell/starcommand.ps1"
             [Console]::WriteLine("Downloading: $dlUrl")
             $httpCode = ""
             try {
