@@ -47,7 +47,7 @@ But the kicker: it's all reproducible. Save a palette to favorites and you've sa
 |`star history`    |Last 20 palettes (most recent first)       |
 |`star history N`  |Save palette `#N` from history to favorites|
 |`star show H1..H6`|Preview a custom palette as a mini rocket  |
-|`star add H1..H6` |Add a custom palette to favorites          |
+|`star add H1..H6 [H1..H6 ...]` |Add one or more palettes to favorites|
 |`star explore [N]`|Browse `N` random palettes (default 5)     |
 
 *`star show` previews any 6 hex codes as a full rocket before saving — useful for vibe-checking a palette you found.*

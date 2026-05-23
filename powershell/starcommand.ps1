@@ -3,7 +3,7 @@
 # Implements xorshift32 PRNG for cross-shell deterministic output
 # Works in PowerShell 5.1+ and PowerShell 7+
 
-$script:RktVersion = '1.0.10'
+$script:RktVersion = '1.1.0'
 $script:RktUpdateCache = Join-Path $HOME '.config/powershell/rocket_update_check'
 
 function Invoke-UpdateCheckBackground {
@@ -820,34 +820,34 @@ function star {
 
         'add' {
             if ($args.Count -lt 7) {
-                [Console]::WriteLine('Usage: star add <h1> <h2> <h3> <h4> <h5> <h6>')
+                [Console]::WriteLine('Usage: star add <h1> <h2> <h3> <h4> <h5> <h6> [<h1>..<h6> ...]')
                 [Console]::WriteLine('Order: porthole, window, body, top, window-sides, flame.')
                 return
             }
-            $hexes = Test-ValidateHexes $args[1..6]
-            if (-not $hexes) {
+            $hexCount = $args.Count - 1
+            if ($hexCount % 6 -ne 0) {
+                [Console]::WriteLine("star add: expected a multiple of 6 hex codes, got $hexCount")
+                return
+            }
+            $paletteCount = $hexCount / 6
+            $allHexes = Test-ValidateHexes $args[1..($args.Count - 1)]
+            if (-not $allHexes) {
                 [Console]::WriteLine('Invalid hex code. Each must be 6 hex digits (e.g., ff0066 or #ff0066).')
                 return
             }
-            $palette = "$($hexes[0]) $($hexes[1]) $($hexes[2]) $($hexes[3]) $($hexes[4]) $($hexes[5])"
-            if ((Test-Path $fav_file)) {
-                $existing = Get-Content $fav_file
-                if ($existing -contains $palette) {
-                    [Console]::WriteLine('Already in favorites.')
-                    return
-                }
-            }
             New-Item -ItemType Directory -Path $favDir -Force -ErrorAction SilentlyContinue | Out-Null
-            Add-Content $fav_file $palette
-            Set-RocketColor $hexes[0]; [Console]::Write('★ ')
-            Set-RocketColor $hexes[1]; [Console]::Write('★ ')
-            Set-RocketColor $hexes[2]; [Console]::Write('★ ')
-            Set-RocketColor $hexes[3]; [Console]::Write('★ ')
-            Set-RocketColor $hexes[4]; [Console]::Write('★ ')
-            Set-RocketColor $hexes[5]; [Console]::Write('★')
-            Set-RocketColor normal
+            for ($j = 0; $j -lt $paletteCount; $j++) {
+                $idx = $j * 6
+                $palette = "$($allHexes[$idx]) $($allHexes[$idx+1]) $($allHexes[$idx+2]) $($allHexes[$idx+3]) $($allHexes[$idx+4]) $($allHexes[$idx+5])"
+                Add-Content $fav_file $palette
+            }
             $total = (Get-Content $fav_file | Measure-Object).Count
-            [Console]::WriteLine("  added to favorites! ($total total)")
+            $start = $total - $paletteCount + 1
+            for ($j = 0; $j -lt $paletteCount; $j++) {
+                $idx = $j * 6
+                $palette = "$($allHexes[$idx]) $($allHexes[$idx+1]) $($allHexes[$idx+2]) $($allHexes[$idx+3]) $($allHexes[$idx+4]) $($allHexes[$idx+5])"
+                Invoke-PrintStarRow 0 $palette "Added favorite #$($start + $j): "
+            }
         }
 
         'explore' {
@@ -870,7 +870,7 @@ function star {
             }
             [Console]::WriteLine()
             [Console]::WriteLine('  star show <h1>..<h6>   preview a full rocket')
-            [Console]::WriteLine('  star add  <h1>..<h6>   save directly to favorites')
+            [Console]::WriteLine('  star add  <h1>..<h6> [<h1>..<h6> ...]   save palette(s) to favorites')
         }
 
         'weight' {
@@ -1046,7 +1046,7 @@ function star {
             [Console]::WriteLine('star history clear            wipe history')
             [Console]::WriteLine()
             [Console]::WriteLine('star show H1..H6              preview a custom palette (mini rocket)')
-            [Console]::WriteLine('star add  H1..H6              add a custom palette directly to favorites')
+            [Console]::WriteLine('star add  H1..H6 [H1..H6 ...] add one or more palettes to favorites')
             [Console]::WriteLine('star explore [N]              browse N random palettes (default 5)')
             [Console]::WriteLine()
             [Console]::WriteLine('star color                    show current palette preview')

@@ -3,7 +3,7 @@
 # Deterministic rocket + starfield greeting for zsh
 # Ported from fish_greeting.fish
 
-_RKT_VERSION="1.0.10"
+_RKT_VERSION="1.1.0"
 _RKT_UPDATE_CACHE="$HOME/.config/zsh/rocket_update_check"
 
 _rkt_update_check_background() {
@@ -624,31 +624,42 @@ star() {
       ;;
     add)
       if (( $# < 7 )); then
-        echo "Usage: star add <h1> <h2> <h3> <h4> <h5> <h6>"
+        echo "Usage: star add <h1> <h2> <h3> <h4> <h5> <h6> [<h1>..<h6> ...]"
         echo "Order: porthole, window, body, top, window-sides, flame."
         return 1
       fi
-      local -a hexes
-      if ! hexes=($(_star_validate_hexes "$2" "$3" "$4" "$5" "$6" "$7")); then
-        echo "Invalid hex code. Each must be 6 hex digits (e.g., ff0066 or #ff0066)."
+      local hex_count=$(($# - 1))
+      if (( hex_count % 6 != 0 )); then
+        echo "star add: expected a multiple of 6 hex codes, got $hex_count"
         return 1
       fi
-      local palette="$hexes[1] $hexes[2] $hexes[3] $hexes[4] $hexes[5] $hexes[6]"
-      if [[ -f "$fav_file" ]] && grep -Fxq "$palette" "$fav_file"; then
-        echo "Already in favorites."
-        return 0
-      fi
+      local palette_count=$((hex_count / 6))
+      local -a all_hexes=()
+      local i raw cleaned
+      for ((i=2; i<=$#; i++)); do
+        raw="${(P)i}"
+        cleaned="${raw#\#}"
+        if [[ ! "$cleaned" =~ ^[0-9a-fA-F]{6}$ ]]; then
+          echo "Invalid hex code at position $((i-1)): $raw. Each must be 6 hex digits (e.g., ff0066 or #ff0066)."
+          return 1
+        fi
+        all_hexes+=("$cleaned")
+      done
       mkdir -p "${fav_file:h}"
-      echo "$palette" >> "$fav_file"
-      _rkt_set_color "$hexes[1]"; printf '★ '
-      _rkt_set_color "$hexes[2]"; printf '★ '
-      _rkt_set_color "$hexes[3]"; printf '★ '
-      _rkt_set_color "$hexes[4]"; printf '★ '
-      _rkt_set_color "$hexes[5]"; printf '★ '
-      _rkt_set_color "$hexes[6]"; printf '★'
-      _rkt_set_color normal
+      local j idx palette
+      for ((j=0; j<palette_count; j++)); do
+        idx=$((j * 6))
+        palette="$all_hexes[$((idx+1))] $all_hexes[$((idx+2))] $all_hexes[$((idx+3))] $all_hexes[$((idx+4))] $all_hexes[$((idx+5))] $all_hexes[$((idx+6))]"
+        echo "$palette" >> "$fav_file"
+      done
       local -a all_lines=("${(@f)"$(<$fav_file)"}")
-      printf '  added to favorites! (%s total)\n' "${#all_lines[@]}"
+      local total=${#all_lines[@]}
+      local start=$((total - palette_count + 1))
+      for ((j=0; j<palette_count; j++)); do
+        idx=$((j * 6))
+        palette="$all_hexes[$((idx+1))] $all_hexes[$((idx+2))] $all_hexes[$((idx+3))] $all_hexes[$((idx+4))] $all_hexes[$((idx+5))] $all_hexes[$((idx+6))]"
+        _rocket_print_star_row "" "$palette" "Added favorite #$((start + j)): "
+      done
       ;;
     explore|browse)
       local n=5
@@ -671,7 +682,7 @@ star() {
       done
       echo ''
       echo "  star show <h1>..<h6>   preview a full rocket"
-      echo "  star add  <h1>..<h6>   save directly to favorites"
+      echo "  star add  <h1>..<h6> [<h1>..<h6> ...]   save palette(s) to favorites"
       ;;
     weight|w)
       _rkt_load_settings
@@ -829,7 +840,7 @@ star() {
       echo "star history clear            wipe history"
       echo ''
       echo "star show H1..H6              preview a custom palette (mini rocket)"
-      echo "star add  H1..H6              add a custom palette directly to favorites"
+      echo "star add  H1..H6 [H1..H6 ...] add one or more palettes to favorites"
       echo "star explore [N]              browse N random palettes (default 5)"
       echo ''
       echo "star color                    show current palette preview"

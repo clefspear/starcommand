@@ -2,6 +2,14 @@
 
 All notable changes to starcommand are documented here.
 
+## [1.1.0] — 2026-05-23
+
+- Extended `star add` to accept any positive multiple of 6 hex codes,
+  adding each group of 6 as a separate favorite. Atomic validation:
+  if any hex code is invalid the entire batch is rejected. Batched
+  output uses the same `Added favorite #N:` colored-star format as
+  `star list` / `star history`. Applies to all four shells.
+
 ## [1.0.10] — 2026-05-23
 
 - Fixed `star update` broken on Windows PowerShell 5.1: `curl` is a built-in

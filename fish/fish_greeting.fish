@@ -1,5 +1,5 @@
 # Created By: Peter Azmy
-set -g _RKT_VERSION "1.0.10"
+set -g _RKT_VERSION "1.1.0"
 set -g _RKT_UPDATE_CACHE ~/.config/fish/rocket_update_check
 
 function _rkt_update_check_background --description "Background weekly version check"
@@ -594,32 +594,47 @@ function star --description "Save / browse / preview rocket palettes"
 
         case add
             if test (count $argv) -lt 7
-                echo "Usage: star add <h1> <h2> <h3> <h4> <h5> <h6>"
+                echo "Usage: star add <h1> <h2> <h3> <h4> <h5> <h6> [<h1>..<h6> ...]"
                 echo "Order: porthole, window, body, top, window-sides, flame."
                 return 1
             end
-            set --local hexes (_star_validate_hexes $argv[2..7])
+            set --local hex_count (math (count $argv) - 1)
+            if test (math "$hex_count % 6") -ne 0
+                echo "star add: expected a multiple of 6 hex codes, got $hex_count"
+                return 1
+            end
+            set --local palette_count (math "$hex_count / 6")
+            set --local all_hexes (_star_validate_hexes $argv[2..-1])
             or begin
                 echo "Invalid hex code. Each must be 6 hex digits (e.g., ff0066 or #ff0066)."
                 return 1
             end
-
-            set --local palette "$hexes[1] $hexes[2] $hexes[3] $hexes[4] $hexes[5] $hexes[6]"
-            if test -f $fav_file; and grep -Fxq "$palette" $fav_file
-                echo "Already in favorites."
-                return 0
-            end
             mkdir -p (dirname $fav_file)
-            echo $palette >> $fav_file
-
-            set_color $hexes[1]; echo -n "★ "
-            set_color $hexes[2]; echo -n "★ "
-            set_color $hexes[3]; echo -n "★ "
-            set_color $hexes[4]; echo -n "★ "
-            set_color $hexes[5]; echo -n "★ "
-            set_color $hexes[6]; echo -n "★"
-            set_color normal
-            echo "  added to favorites! ("(count (cat $fav_file))" total)"
+            for j in (seq $palette_count)
+                set --local idx (math "($j - 1) * 6 + 1")
+                set --local h1 $all_hexes[$idx]
+                set --local h2 $all_hexes[(math "$idx + 1")]
+                set --local h3 $all_hexes[(math "$idx + 2")]
+                set --local h4 $all_hexes[(math "$idx + 3")]
+                set --local h5 $all_hexes[(math "$idx + 4")]
+                set --local h6 $all_hexes[(math "$idx + 5")]
+                set --local palette "$h1 $h2 $h3 $h4 $h5 $h6"
+                echo $palette >> $fav_file
+            end
+            set --local total (count (cat $fav_file))
+            set --local start (math "$total - $palette_count + 1")
+            for j in (seq $palette_count)
+                set --local idx (math "($j - 1) * 6 + 1")
+                set --local h1 $all_hexes[$idx]
+                set --local h2 $all_hexes[(math "$idx + 1")]
+                set --local h3 $all_hexes[(math "$idx + 2")]
+                set --local h4 $all_hexes[(math "$idx + 3")]
+                set --local h5 $all_hexes[(math "$idx + 4")]
+                set --local h6 $all_hexes[(math "$idx + 5")]
+                set --local palette "$h1 $h2 $h3 $h4 $h5 $h6"
+                set --local fav_n (math "$start + $j - 1")
+                _rocket_print_star_row "" $palette "Added favorite #$fav_n: "
+            end
 
         case explore browse
             set --local n 5
@@ -642,7 +657,7 @@ function star --description "Save / browse / preview rocket palettes"
             end
             echo ""
             echo "  star show <h1>..<h6>   preview a full rocket"
-            echo "  star add  <h1>..<h6>   save directly to favorites"
+            echo "  star add  <h1>..<h6> [<h1>..<h6> ...]   save palette(s) to favorites"
 
         case weight w
             _rkt_load_settings
@@ -801,7 +816,7 @@ function star --description "Save / browse / preview rocket palettes"
             echo "star history clear            wipe history"
             echo ""
             echo "star show H1..H6              preview a custom palette (mini rocket)"
-            echo "star add  H1..H6              add a custom palette directly to favorites"
+            echo "star add  H1..H6 [H1..H6 ...] add one or more palettes to favorites"
             echo "star explore [N]              browse N random palettes (default 5)"
             echo ""
             echo "star color                    show current palette preview"
