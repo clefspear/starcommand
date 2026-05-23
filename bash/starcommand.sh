@@ -3,7 +3,7 @@
 # starcommand.sh — Portable rocket greeting for Bash
 # Implements xorshift32 PRNG for cross-shell deterministic output
 
-_RKT_VERSION="1.2.5"
+_RKT_VERSION="$(cat "$(dirname "${BASH_SOURCE[0]}")/VERSION" 2>/dev/null || echo "0.0.0")"
 _RKT_UPDATE_CACHE="$HOME/.config/bash/rocket_update_check"
 
 _rkt_update_check_background() {
@@ -1067,8 +1067,10 @@ star() {
                 rm -f "$temp_file"
                 return 1
             fi
+            local script_dir="$(dirname "$script_path")"
             cp "$script_path" "${script_path}.bak"
             mv "$temp_file" "$script_path"
+            curl -fsSL --max-time 5 "https://raw.githubusercontent.com/clefspear/starcommand/${branch}/VERSION" -o "$script_dir/VERSION" 2>/dev/null || true
             echo "Updated to v$remote_version. Open a new tab to take effect."
             rm -f "$_RKT_UPDATE_CACHE"
             ;;

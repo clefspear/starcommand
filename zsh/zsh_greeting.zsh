@@ -3,7 +3,7 @@
 # Deterministic rocket + starfield greeting for zsh
 # Ported from fish_greeting.fish
 
-_RKT_VERSION="1.2.5"
+_RKT_VERSION="$(cat "${0:A:h}/VERSION" 2>/dev/null || echo "0.0.0")"
 _RKT_UPDATE_CACHE="$HOME/.config/zsh/rocket_update_check"
 
 _rkt_update_check_background() {
@@ -914,8 +914,10 @@ star() {
         rm -f "$temp_file"
         return 1
       fi
+      local script_dir="${script_path:h}"
       cp "$script_path" "${script_path}.bak"
       mv "$temp_file" "$script_path"
+      curl -fsSL --max-time 5 "https://raw.githubusercontent.com/clefspear/starcommand/${branch}/VERSION" -o "$script_dir/VERSION" 2>/dev/null || true
       echo "Updated to v$remote_version. Open a new tab to take effect."
       rm -f "$_RKT_UPDATE_CACHE"
       ;;
@@ -1298,11 +1300,14 @@ _starcommand_install() {
 
   mkdir -p "$install_dir" || { echo "Could not create $install_dir" >&2; return 1; }
 
-  # Download self to a stable location
+  # Download self and VERSION to a stable location
+  local version_url="https://raw.githubusercontent.com/${repo}/${branch}/VERSION"
   if command -v curl >/dev/null 2>&1; then
     curl -fsSL "$raw_url" -o "$install_path" || { echo "Download failed" >&2; return 1; }
+    curl -fsSL "$version_url" -o "${install_dir}/VERSION" 2>/dev/null || true
   elif command -v wget >/dev/null 2>&1; then
     wget -q "$raw_url" -O "$install_path" || { echo "Download failed" >&2; return 1; }
+    wget -q "$version_url" -O "${install_dir}/VERSION" 2>/dev/null || true
   else
     echo "Need curl or wget to install starcommand." >&2
     return 1

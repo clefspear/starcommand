@@ -3,7 +3,7 @@
 # Implements xorshift32 PRNG for cross-shell deterministic output
 # Works in PowerShell 5.1+ and PowerShell 7+
 
-$script:RktVersion = '1.2.5'
+$script:RktVersion = if (Test-Path "$PSScriptRoot/VERSION") { (Get-Content "$PSScriptRoot/VERSION" -Raw).Trim() } else { '0.0.0' }
 $script:RktUpdateCache = Join-Path $HOME '.config/powershell/rocket_update_check'
 
 function Invoke-UpdateCheckBackground {
@@ -1117,8 +1117,17 @@ function star {
                     Remove-Item $tempFile -ErrorAction SilentlyContinue
                     return
                 }
+                $scriptDir = Split-Path $scriptPath -Parent
                 Copy-Item $scriptPath "$scriptPath.bak" -Force
                 Move-Item $tempFile $scriptPath -Force
+                $versionUrl = "https://raw.githubusercontent.com/clefspear/starcommand/$branch/VERSION"
+                try {
+                    if (Get-Command curl.exe -ErrorAction SilentlyContinue) {
+                        & curl.exe -fsSL --ssl-no-revoke --max-time 5 $versionUrl -o "$scriptDir/VERSION" 2>$null
+                    } else {
+                        (Invoke-WebRequest -Uri $versionUrl -TimeoutSec 5 -UseBasicParsing).Content.Trim() | Out-File "$scriptDir/VERSION" -Encoding ascii -Force
+                    }
+                } catch {}
                 [Console]::WriteLine("Updated to v$remoteVersion. Open a new tab to take effect.")
                 Remove-Item $script:RktUpdateCache -Force -ErrorAction SilentlyContinue
             } catch {
