@@ -892,14 +892,44 @@ star() {
       if [[ "$_rkt_channel" == "cantaloupe" ]]; then
         echo "star update stable            switch back to the stable channel"
       fi
+      echo "star supernova                 remove starcommand from this system"
       echo ''
       echo "  Favorites: $fav_file"
       echo "  History:   $hist_file (last 100 launches)"
       echo "  Settings:  $HOME/.config/zsh/rocket_settings.zsh"
       ;;
+    supernova)
+      emulate -L zsh
+      echo "Are you sure you want to uninstall starcommand? [y/N]"
+      read -r _rkt_response
+      if [[ "$_rkt_response" != "y" && "$_rkt_response" != "Y" ]]; then
+        echo "Uninstall cancelled."
+        return 0
+      fi
+      echo "Keep your favorites and history? [Y/n]"
+      read -r _rkt_response
+      local keep=true
+      if [[ "$_rkt_response" == "n" || "$_rkt_response" == "N" ]]; then
+        keep=false
+      fi
+      local sed_opt="-i"
+      [[ "$(uname -s)" == "Darwin" ]] && sed_opt="-i ''"
+      local profile="$HOME/.zshrc"
+      [[ -f "$profile" ]] && eval sed "$sed_opt" '/zsh_greeting\.zsh/d; /# >>> starcommand >>>/,/# <<< starcommand <<</d' "$profile"
+      local script_path="${(%):-%x}"
+      [[ -n "$script_path" && -f "$script_path" ]] && rm -f "$script_path"
+      rm -f "$_RKT_UPDATE_CACHE"
+      if $keep; then
+        echo "starcommand uninstalled. Favorites, history, and settings kept at ~/.config/zsh/"
+      else
+        rm -f "$HOME/.config/zsh/rocket_favorites.txt" "$HOME/.config/zsh/rocket_history.txt" "$HOME/.config/zsh/rocket_settings.zsh"
+        echo "starcommand has been uninstalled."
+      fi
+      return 0
+      ;;
     *)
       echo "Unknown subcommand: ${1}"
-      echo "Try: star, star list, star show, star add, star explore, star color, star weight, star help"
+      echo "Try: star, star list, star show, star add, star explore, star color, star weight, star update, star supernova, star help"
       return 1
       ;;
   esac

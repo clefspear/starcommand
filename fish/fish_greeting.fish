@@ -868,14 +868,41 @@ function star --description "Save / browse / preview rocket palettes"
             if test "$_rkt_channel" = "cantaloupe"
                 echo "star update stable            switch back to the stable channel"
             end
+            echo "star supernova                 remove starcommand from this system"
             echo ""
             echo "  Favorites: $fav_file"
             echo "  History:   $hist_file (last 100 launches)"
             echo "  Settings:  ~/.config/fish/rocket_settings.fish"
 
+        case supernova
+            echo "Are you sure you want to uninstall starcommand? [y/N]"
+            read --local response
+            if test "$response" != "y" -a "$response" != "Y"
+                echo "Uninstall cancelled."
+                return 0
+            end
+            echo "Keep your favorites and history? [Y/n]"
+            read --local response
+            set --local keep true
+            if test "$response" = "n" -o "$response" = "N"
+                set keep false
+            end
+            set --local fish_func_dir ~/.config/fish/functions
+            if test -f "$fish_func_dir/fish_greeting.fish"
+                rm -f "$fish_func_dir/fish_greeting.fish"
+            end
+            rm -f $_RKT_UPDATE_CACHE
+            if $keep
+                echo "starcommand uninstalled. Favorites, history, and settings kept at ~/.config/fish/"
+            else
+                rm -f ~/.config/fish/rocket_favorites.txt ~/.config/fish/rocket_history.txt ~/.config/fish/rocket_settings.fish
+                echo "starcommand has been uninstalled."
+            end
+            return 0
+
         case '*'
             echo "Unknown subcommand: $argv[1]"
-            echo "Try: star, star list, star show, star add, star explore, star color, star weight, star help"
+            echo "Try: star, star list, star show, star add, star explore, star color, star weight, star update, star supernova, star help"
             return 1
     end
 end

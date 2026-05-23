@@ -1100,15 +1100,51 @@ function star {
             if ($global:_rkt_channel -eq 'cantaloupe') {
                 [Console]::WriteLine('star update stable            switch back to the stable channel')
             }
+            [Console]::WriteLine('star supernova                 remove starcommand from this system')
             [Console]::WriteLine()
             [Console]::WriteLine("  Favorites: $fav_file")
             [Console]::WriteLine("  History:   $hist_file (last 100 launches)")
             [Console]::WriteLine("  Settings:  $(Join-Path $HOME '.config/powershell/rocket_settings.ps1')")
         }
 
+        'supernova' {
+            [Console]::WriteLine('Are you sure you want to uninstall starcommand? [y/N]')
+            $response = [Console]::ReadLine()
+            if ($response -ne 'y' -and $response -ne 'Y') {
+                [Console]::WriteLine('Uninstall cancelled.')
+                return
+            }
+            [Console]::WriteLine('Keep your favorites and history? [Y/n]')
+            $response = [Console]::ReadLine()
+            $keep = $true
+            if ($response -eq 'n' -or $response -eq 'N') { $keep = $false }
+
+            $profilePath = $PROFILE.CurrentUserAllHosts
+            if (Test-Path $profilePath) {
+                $content = Get-Content $profilePath -Raw
+                $cleaned = [regex]::Replace($content, "(?s)\r?\n?# >>> starcommand >>>.*?# <<< starcommand <<<\r?\n?", '')
+                Set-Content -Path $profilePath -Value $cleaned.TrimEnd()
+            }
+            $scriptPath = if ($PSCommandPath) { $PSCommandPath } else { $MyInvocation.MyCommand.Source }
+            if ($scriptPath -and (Test-Path $scriptPath)) { Remove-Item $scriptPath -Force }
+            Remove-Item $script:RktUpdateCache -Force -ErrorAction SilentlyContinue
+
+            $profileDir = Split-Path $PROFILE.CurrentUserAllHosts -Parent
+            if ($keep) {
+                [Console]::WriteLine("starcommand uninstalled. Favorites, history, and settings kept at $profileDir")
+            } else {
+                Remove-Item -Force -ErrorAction SilentlyContinue -Path @(
+                    (Join-Path $profileDir 'rocket_favorites.txt'),
+                    (Join-Path $profileDir 'rocket_history.txt'),
+                    (Join-Path $profileDir 'rocket_settings.ps1')
+                )
+                [Console]::WriteLine('starcommand has been uninstalled.')
+            }
+        }
+
         default {
             [Console]::WriteLine("Unknown subcommand: $cmd")
-            [Console]::WriteLine('Try: star, star list, star show, star add, star explore, star color, star weight, star help')
+            [Console]::WriteLine('Try: star, star list, star show, star add, star explore, star color, star weight, star update, star supernova, star help')
         }
     }
 }

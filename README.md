@@ -49,6 +49,7 @@ But the kicker: it's all reproducible. Save a palette to favorites and you've sa
 |`star show H1..H6`|Preview a custom palette as a mini rocket  |
 |`star add H1..H6 [H1..H6 ...]` |Add one or more palettes to favorites|
 |`star explore [N]`|Browse `N` random palettes (default 5)     |
+|`star supernova`  |Uninstall starcommand from this system     |
 
 *`star show` previews any 6 hex codes as a full rocket before saving — useful for vibe-checking a palette you found.*
 
@@ -231,7 +232,9 @@ Plain text. Easy to back up, sync via dotfiles, or share.
 
 ## Uninstall
 
-Each block removes the source line from your shell's run command file and deletes the installed scripts, favorites, history, and settings.
+Run `star supernova` to remove starcommand from your system. You'll be asked to confirm, and whether to keep your favorites and history.
+
+Alternatively, remove the source lines manually per the shell-specific instructions below, then delete the config files.
 
 **\*bash:**
 
