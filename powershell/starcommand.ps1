@@ -32,7 +32,7 @@ function Invoke-UpdateCheckBackground {
         param($url, $cacheFile, $now)
         try {
             if (Get-Command curl.exe -ErrorAction SilentlyContinue) {
-                $v = & curl.exe -fsSL --max-time 3 $url 2>$null
+                $v = & curl.exe -fsSL --ssl-no-revoke --max-time 3 $url 2>$null
             } else {
                 $v = (Invoke-WebRequest -Uri $url -TimeoutSec 3 -UseBasicParsing).Content.Trim()
             }
@@ -980,7 +980,7 @@ function star {
             }
             $remoteVersion = ''
             if (Get-Command curl.exe -ErrorAction SilentlyContinue) {
-                $remoteVersion = & curl.exe -fsSL --max-time 5 'https://raw.githubusercontent.com/clefspear/starcommand/main/VERSION' 2>$null
+                $remoteVersion = & curl.exe -fsSL --ssl-no-revoke --max-time 5 'https://raw.githubusercontent.com/clefspear/starcommand/main/VERSION' 2>$null
             } else {
                 try { $remoteVersion = (Invoke-WebRequest -Uri 'https://raw.githubusercontent.com/clefspear/starcommand/main/VERSION' -TimeoutSec 5 -UseBasicParsing).Content.Trim() } catch {}
             }
@@ -1009,7 +1009,7 @@ function star {
             $httpCode = ""
             try {
                 if (Get-Command curl.exe -ErrorAction SilentlyContinue) {
-                    $result = & curl.exe -sS -L --max-time 10 -w '%{http_code}' -o $tempFile $dlUrl 2>$null
+                    $result = & curl.exe -sS -L --ssl-no-revoke --max-time 10 -w '%{http_code}' -o $tempFile $dlUrl 2>$null
                     $curlExit = $LASTEXITCODE
                     $httpCode = $result
                 } else {
