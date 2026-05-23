@@ -2,6 +2,13 @@
 
 All notable changes to starcommand are documented here.
 
+## [1.0.9] — 2026-05-23
+
+- Fixed `star explore` returning identical palettes on Ubuntu (bash & zsh):
+  palette generation used the global `_RKT_PRNG_STATE` via `rkt_prng_range`,
+  but `$()` subshells inherited the same state on each call. Now reseeds the
+  PRNG from `/dev/urandom` before each iteration in the explore loop.
+
 ## [1.0.8] — 2026-05-22
 
 - Fixed `star update` download by switching from release assets to raw content

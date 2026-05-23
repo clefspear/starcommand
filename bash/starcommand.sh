@@ -3,7 +3,7 @@
 # starcommand.sh — Portable rocket greeting for Bash
 # Implements xorshift32 PRNG for cross-shell deterministic output
 
-_RKT_VERSION="1.0.8"
+_RKT_VERSION="1.0.9"
 _RKT_UPDATE_CACHE="$HOME/.config/bash/rocket_update_check"
 
 _rkt_update_check_background() {
@@ -803,6 +803,7 @@ star() {
             echo ""
             local i p1 p2 p3 p4 p5 p6
             for ((i=1; i<=n; i++)); do
+                rkt_prng_seed
                 local -a p=($(rkt_gen_rocket_palette))
                 printf "%3d. " "$i"
                 rkt_set_color "${p[0]}"; echo -n "★ "

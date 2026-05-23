@@ -657,6 +657,7 @@ star() {
       fi
       echo ''
       for ((i=1; i<=n; i++)); do
+        _rkt_prng_seed
         local -a p=($(_gen_rocket_palette))
         printf "%3d. " "$i"
         _rkt_set_color "$p[1]"; printf '★ '
