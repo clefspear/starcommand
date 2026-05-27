@@ -347,7 +347,8 @@ function Invoke-RenderFlame {
 
 # ── Palette generation ─────────────────────────────────────────────────────────
 
-function Invoke-GenRocketPalette {
+# DEPRECATED — HSL-based generator, kept as reference for color-theme previews.
+function Invoke-GenRocketPaletteHsl {
     $h_base = Get-PrngRange 0 359
     $scheme = Get-PrngRange 0 4
     $sat = Get-PrngRange 65 90
@@ -364,6 +365,25 @@ function Invoke-GenRocketPalette {
     foreach ($off in $offs) {
         $h = ($h_base + $off) % 360
         $colors += Convert-HslToHex $h $sat $light
+    }
+    return $colors
+}
+
+function Invoke-GenRocketPalette {
+    return Invoke-GenRocketPalette24Bit
+}
+
+function Invoke-GenRocketPalette24Bit {
+    $theme = if ($global:_rkt_terminal_theme) { $global:_rkt_terminal_theme } else { 'dark' }
+    $colors = @()
+    for ($i = 0; $i -lt 6; $i++) {
+        do {
+            $r = Get-PrngRange 0 255
+            $g = Get-PrngRange 0 255
+            $b = Get-PrngRange 0 255
+            $brightness = [int]((299 * $r + 587 * $g + 114 * $b) / 1000)
+        } while (($theme -eq 'light' -and $brightness -gt 200) -or ($theme -ne 'light' -and $brightness -lt 60))
+        $colors += '{0:x2}{1:x2}{2:x2}' -f $r, $g, $b
     }
     return $colors
 }
@@ -884,12 +904,19 @@ function star {
             if ($global:_rkt_terminal_theme -eq 'light') { $rktAnsi = 30 }
             if (-not $global:Esc) { $global:Esc = [char]27 }
 
+            $rktSeen = [System.Collections.Generic.HashSet[string]]::new()
+
             [Console]::WriteLine()
             for ($i = 1; $i -le $n; $i++) {
+                Set-PrngSeed
                 if ($hasRockets -and $rktAlive -and $rktSubframe -eq 0) {
                     $rktFlameIdx = Get-PrngRange 0 1
                 }
-                $p = Invoke-GenRocketPalette
+                $p = @()
+                do {
+                    $p = Invoke-GenRocketPalette
+                    $rktPalStr = "$($p[0]) $($p[1]) $($p[2]) $($p[3]) $($p[4]) $($p[5])"
+                } while (-not $rktSeen.Add($rktPalStr))
                 [Console]::Write("{0,4}. " -f $i)
                 if ($hasRockets -and $rktAlive) {
                     $rktRow = ''
