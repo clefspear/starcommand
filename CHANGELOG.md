@@ -2,6 +2,13 @@
 
 All notable changes to starcommand are documented here.
 
+## [1.3.1] — 2026-05-27
+
+- Widen palette generator from HSL to full 24-bit RGB color space (16.7M → 16.8M colors) — all four shells, dark/light theme awareness with brightness clamping ([60..200] luminance range)
+- Deduplicate palettes within `star explore` runs — identical six-hex codes are regenerated on the spot, guaranteed unique across all `N` rolls
+- Deprecate HSL generator (`_rkt_gen_rocket_palette_hsl` / `Invoke-GenRocketPaletteHsl`) kept as reference for color-theme previews
+- Update README to document deduplication guarantee
+
 ## [1.3.0] — 2026-05-23
 
 - Lower rocket threshold from N>=300 to N>=250
