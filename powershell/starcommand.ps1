@@ -520,7 +520,7 @@ function Invoke-HwInfo {
     $cache = Join-Path $cacheDir 'rocket_hw_cache.ps1'
     New-Item -ItemType Directory -Path $cacheDir -Force -ErrorAction SilentlyContinue | Out-Null
 
-    if ((Test-Path $cache) -and ((Get-Item $cache).LastWriteTime -gt (Get-Date).AddDays(-1))) {
+    if ((Test-Path $cache) -and ((Get-Item $cache).LastWriteTime -gt (Get-Date).AddDays(-7))) {
         . $cache
         return
     }
@@ -530,6 +530,7 @@ function Invoke-HwInfo {
 
     $cpu_str = ''
     $mem_str = ''
+    $bootTicks = 0
 
     if ($os_type -eq [System.PlatformID]::Win32NT) {
         try {
@@ -539,7 +540,10 @@ function Invoke-HwInfo {
                 $mem_gb = [Math]::Round($cs.TotalPhysicalMemory / 1GB, 1)
                 $mem_str = "$mem_gb GB"
             }
+            $os = Get-CimInstance Win32_OperatingSystem -ErrorAction SilentlyContinue
+            if ($os) { $bootTicks = $os.LastBootUpTime.Ticks }
         } catch {}
+        if (-not $cpu_str) { $cpu_str = "$([System.Environment]::ProcessorCount) logical processors" }
     } else {
         try {
             $os_str = uname -sm
@@ -576,6 +580,7 @@ function Invoke-HwInfo {
 `$global:_rkt_os='$os_str'
 `$global:_rkt_cpu='$cpu_str'
 `$global:_rkt_mem='$mem_str'
+`$global:_rkt_boot_tick=$bootTicks
 "@ | Set-Content $cache
     . $cache
 }
@@ -585,7 +590,7 @@ function Invoke-NetInfo {
     $cache = Join-Path $cacheDir 'rocket_net_cache.ps1'
     New-Item -ItemType Directory -Path $cacheDir -Force -ErrorAction SilentlyContinue | Out-Null
 
-    if ((Test-Path $cache) -and ((Get-Item $cache).LastWriteTime -gt (Get-Date).AddMinutes(-5))) {
+    if ((Test-Path $cache) -and ((Get-Item $cache).LastWriteTime -gt (Get-Date).AddDays(-7))) {
         . $cache
         return
     }
@@ -876,6 +881,7 @@ function star {
             }
             $rktAnsi = 97
             if ($global:_rkt_terminal_theme -eq 'light') { $rktAnsi = 30 }
+            if (-not $global:Esc) { $global:Esc = [char]27 }
 
             [Console]::WriteLine()
             for ($i = 1; $i -le $n; $i++) {
@@ -893,9 +899,11 @@ function star {
                     } else {
                         if ($rktFlameIdx -eq 0) { $rktRow = ' v ' } else { $rktRow = ' * ' }
                     }
+                    if (-not $rktRow) { $rktRow = '' }
+                    if (-not $rktAnsi) { $rktAnsi = 97 }
                     for ($s = 0; $s -lt 6; $s++) {
                         if ($s -eq $rktCol) {
-                            [Console]::Write("{0}[0m{0}[{1}m{2}{0}[0m" -f $global:Esc, $rktAnsi, $rktRow)
+                            [Console]::Write("$global:Esc[0m$global:Esc[$($rktAnsi)m$rktRow$global:Esc[0m")
                         } else {
                             Set-RocketColor $p[$s]; [Console]::Write('★')
                             if ($s -lt 5) {
@@ -914,7 +922,7 @@ function star {
                 }
                 Set-RocketColor normal
                 [Console]::WriteLine("  $($p[0]) $($p[1]) $($p[2]) $($p[3]) $($p[4]) $($p[5])")
-                $true
+                $null = $true
                 if ($hasRockets) {
                     if ($rktAlive) {
                         $rktSubframe++
@@ -1247,6 +1255,18 @@ function Write-WelcomeMessage {
 
 function Get-PortableUptime {
     try {
+        # Fast path: cached boot tick from Invoke-HwInfo
+        if ($global:_rkt_boot_tick -and $global:_rkt_boot_tick -gt 0) {
+            $bootTime = [DateTime]::new($global:_rkt_boot_tick)
+            $u = (Get-Date) - $bootTime
+            return ('{0}d {1}h {2}m' -f $u.Days, $u.Hours, $u.Minutes)
+        }
+        # Fast fallback via Environment.TickCount (avoids WMI)
+        $bootTime = [DateTime]::Now.AddMilliseconds(-[Environment]::TickCount)
+        $u = (Get-Date) - $bootTime
+        if ($u.TotalDays -lt 49) {
+            return ('{0}d {1}h {2}m' -f $u.Days, $u.Hours, $u.Minutes)
+        }
         # PowerShell 7+ has Get-Uptime built in (cross-platform)
         if (Get-Command Get-Uptime -ErrorAction SilentlyContinue) {
             $u = Get-Uptime
