@@ -36,7 +36,9 @@ function _rkt_update_check_nudge --description "Print update nudge if newer vers
     test -n "$cached_version"; or return
     test "$cached_version" != "$_RKT_VERSION"; or return
     set_color grey
-    echo "(starcommand v$cached_version available — run 'star update' — https://github.com/clefspear/starcommand/blob/main/CHANGELOG.md)"
+    set --local changelog_branch main
+    test "$_rkt_channel" = "cantaloupe"; and set changelog_branch cantaloupe
+    echo "(starcommand v$cached_version available — run 'star update' — https://github.com/clefspear/starcommand/blob/$changelog_branch/CHANGELOG.md)"
     set_color normal
 end
 
@@ -908,9 +910,17 @@ function star --description "Save / browse / preview rocket palettes"
                 return 1
             end
             set --local script_dir (dirname "$script_path")
+            set --local version_url "https://raw.githubusercontent.com/clefspear/starcommand/$branch/VERSION"
+            set --local temp_version (mktemp 2>/dev/null; or echo /tmp/starcommand_version.$fish_pid)
+            set --local version_http (curl -sS -L --max-time 10 -w "%{http_code}" -o "$temp_version" "$version_url" 2>/dev/null)
+            if test "$version_http" != "200"
+                echo "Failed to download VERSION file. Update aborted."
+                rm -f "$temp_file" "$temp_version"
+                return 1
+            end
             cp "$script_path" "$script_path.bak"
             mv "$temp_file" "$script_path"
-            curl -fsSL --max-time 5 "https://raw.githubusercontent.com/clefspear/starcommand/$branch/VERSION" -o "$script_dir/VERSION" 2>/dev/null; or true
+            mv "$temp_version" "$script_dir/VERSION"
             echo "Updated to v$remote_version. Open a new tab to take effect."
             rm -f $_RKT_UPDATE_CACHE
 
