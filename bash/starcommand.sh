@@ -6,6 +6,21 @@
 _RKT_VERSION="$(cat "$(dirname "${BASH_SOURCE[0]}")/VERSION" 2>/dev/null || echo "0.0.0")"
 _RKT_UPDATE_CACHE="$HOME/.config/bash/rocket_update_check"
 
+_rkt_is_newer_version() {
+    local remote="$1" local_v="$2"
+    local r_major="${remote%%.*}" rest="${remote#*.}"
+    local r_minor="${rest%%.*}" r_patch="${rest#*.}"
+    local l_major="${local_v%%.*}"
+    rest="${local_v#*.}"
+    local l_minor="${rest%%.*}" l_patch="${rest#*.}"
+    (( r_major > l_major )) && return 0
+    (( r_major < l_major )) && return 1
+    (( r_minor > l_minor )) && return 0
+    (( r_minor < l_minor )) && return 1
+    (( r_patch > l_patch )) && return 0
+    return 1
+}
+
 _rkt_update_check_background() {
     [[ -n ${STARCOMMAND_NO_UPDATE_CHECK:-} ]] && return
     [[ "${_RKT_AUTO_UPDATE_CHECK:-}" == "yes" ]] || return
@@ -1072,8 +1087,12 @@ star() {
                 echo "Failed to check for updates. Visit https://github.com/clefspear/starcommand/releases"
                 return 1
             fi
-            if [[ "$remote_version" == "$_RKT_VERSION" ]]; then
-                echo "starcommand is already up to date (v$_RKT_VERSION)."
+            if ! _rkt_is_newer_version "$remote_version" "$_RKT_VERSION"; then
+                if [[ "$remote_version" == "$_RKT_VERSION" ]]; then
+                    echo "starcommand is already up to date (v$_RKT_VERSION)."
+                else
+                    echo "Remote version ($remote_version) is older than installed ($_RKT_VERSION)."
+                fi
                 return 0
             fi
             echo "starcommand v$remote_version is available. Update now? [y/n]"

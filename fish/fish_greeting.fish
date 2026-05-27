@@ -2,6 +2,17 @@
 set -g _RKT_VERSION (cat (dirname (status filename))/VERSION 2>/dev/null; or echo "0.0.0")
 set -g _RKT_UPDATE_CACHE ~/.config/fish/rocket_update_check
 
+function _rkt_is_newer_version --argument-names remote local_v
+    set --local r_parts (string split "." $remote)
+    set --local l_parts (string split "." $local_v)
+    if test $r_parts[1] -gt $l_parts[1]; return 0; end
+    if test $r_parts[1] -lt $l_parts[1]; return 1; end
+    if test $r_parts[2] -gt $l_parts[2]; return 0; end
+    if test $r_parts[2] -lt $l_parts[2]; return 1; end
+    if test $r_parts[3] -gt $l_parts[3]; return 0; end
+    return 1
+end
+
 function _rkt_update_check_background --description "Background weekly version check"
     test -n "$STARCOMMAND_NO_UPDATE_CHECK"; and return
     set -q _RKT_AUTO_UPDATE_CHECK; and test "$_RKT_AUTO_UPDATE_CHECK" != "yes"; and return
@@ -918,8 +929,12 @@ function star --description "Save / browse / preview rocket palettes"
                 echo "Failed to check for updates. Visit https://github.com/clefspear/starcommand/releases"
                 return 1
             end
-            if test "$remote_version" = "$_RKT_VERSION"
-                echo "starcommand is already up to date (v$_RKT_VERSION)."
+            if not _rkt_is_newer_version "$remote_version" "$_RKT_VERSION"
+                if test "$remote_version" = "$_RKT_VERSION"
+                    echo "starcommand is already up to date (v$_RKT_VERSION)."
+                else
+                    echo "Remote version ($remote_version) is older than installed ($_RKT_VERSION)."
+                end
                 return 0
             end
             echo "starcommand v$remote_version is available. Update now? [y/n]"

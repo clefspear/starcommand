@@ -1118,8 +1118,19 @@ function star {
                 [Console]::WriteLine('Failed to check for updates. Visit https://github.com/clefspear/starcommand/releases')
                 return
             }
-            if ($remoteVersion -eq $script:RktVersion) {
-                [Console]::WriteLine("starcommand is already up to date (v$script:RktVersion).")
+            try {
+                $remoteVer = [System.Version]::Parse($remoteVersion)
+                $localVer = [System.Version]::Parse($script:RktVersion)
+                $isNewer = $remoteVer -gt $localVer
+            } catch {
+                $isNewer = $remoteVersion -ne $script:RktVersion
+            }
+            if (-not $isNewer) {
+                if ($remoteVersion -eq $script:RktVersion) {
+                    [Console]::WriteLine("starcommand is already up to date (v$script:RktVersion).")
+                } else {
+                    [Console]::WriteLine("Remote version ($remoteVersion) is older than installed ($script:RktVersion).")
+                }
                 return
             }
             [Console]::WriteLine("starcommand v$remoteVersion is available. Update now? [y/n]")
