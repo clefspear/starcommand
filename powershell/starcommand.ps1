@@ -56,7 +56,8 @@ function Invoke-UpdateCheckNudge {
     if ($cachedVersion -eq $script:RktVersion) { return }
 
     Set-RocketColor grey
-    [Console]::WriteLine("(starcommand v$cachedVersion available — run 'star update' — https://github.com/clefspear/starcommand/blob/main/CHANGELOG.md)")
+    $changelogBranch = if ($global:_rkt_channel -eq 'cantaloupe') { 'cantaloupe' } else { 'main' }
+    [Console]::WriteLine("(starcommand v$cachedVersion available — run 'star update' — https://github.com/clefspear/starcommand/blob/$changelogBranch/CHANGELOG.md)")
     Set-RocketColor normal
 }
 
@@ -1153,16 +1154,27 @@ function star {
                     return
                 }
                 $scriptDir = Split-Path $scriptPath -Parent
-                Copy-Item $scriptPath "$scriptPath.bak" -Force
-                Move-Item $tempFile $scriptPath -Force
                 $versionUrl = "https://raw.githubusercontent.com/clefspear/starcommand/$branch/VERSION"
+                $tempVersion = [System.IO.Path]::GetTempFileName()
+                $versionOk = $false
                 try {
                     if (Get-Command curl.exe -ErrorAction SilentlyContinue) {
-                        & curl.exe -fsSL --ssl-no-revoke --max-time 5 $versionUrl -o "$scriptDir/VERSION" 2>$null
+                        $vh = & curl.exe -sS -L --ssl-no-revoke --max-time 10 -w '%{http_code}' -o $tempVersion $versionUrl 2>$null
+                        if ($vh -eq '200') { $versionOk = $true }
                     } else {
-                        (Invoke-WebRequest -Uri $versionUrl -TimeoutSec 5 -UseBasicParsing).Content.Trim() | Out-File "$scriptDir/VERSION" -Encoding ascii -Force
+                        $vr = Invoke-WebRequest -Uri $versionUrl -TimeoutSec 10 -UseBasicParsing -OutFile $tempVersion
+                        if ($vr.StatusCode -eq 200) { $versionOk = $true }
                     }
                 } catch {}
+                if (-not $versionOk) {
+                    [Console]::WriteLine('Failed to download VERSION file. Update aborted.')
+                    Remove-Item $tempFile -Force -ErrorAction SilentlyContinue
+                    Remove-Item $tempVersion -Force -ErrorAction SilentlyContinue
+                    return
+                }
+                Copy-Item $scriptPath "$scriptPath.bak" -Force
+                Move-Item $tempFile $scriptPath -Force
+                Move-Item $tempVersion "$scriptDir/VERSION" -Force
                 [Console]::WriteLine("Updated to v$remoteVersion. Open a new tab to take effect.")
                 Remove-Item $script:RktUpdateCache -Force -ErrorAction SilentlyContinue
             } catch {
