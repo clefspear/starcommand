@@ -3,7 +3,7 @@
 # Implements xorshift32 PRNG for cross-shell deterministic output
 # Works in PowerShell 5.1+ and PowerShell 7+
 
-$script:RktVersion = if (Test-Path (Join-Path $PSScriptRoot 'VERSION')) { (Get-Content (Join-Path $PSScriptRoot 'VERSION') -Raw).Trim() } else { '0.0.0' }
+$script:RktVersion = if (Test-Path (Join-Path $PSScriptRoot 'docs/VERSION')) { (Get-Content (Join-Path $PSScriptRoot 'docs/VERSION') -Raw).Trim() } else { '0.0.0' }
 $script:RktUpdateCache = Join-Path $HOME '.config/powershell/rocket_update_check'
 
 function Invoke-UpdateCheckBackground {
@@ -31,7 +31,7 @@ function Invoke-UpdateCheckBackground {
     Invoke-LoadSettings
     $branch = 'main'
     if ($global:_rkt_channel -eq 'cantaloupe') { $branch = 'cantaloupe' }
-    $url = "https://raw.githubusercontent.com/clefspear/starcommand/$branch/VERSION"
+    $url = "https://raw.githubusercontent.com/clefspear/starcommand/$branch/docs/VERSION"
     $null = Start-Job -ScriptBlock {
         param($url, $cacheFile, $now)
         try {
@@ -1108,7 +1108,7 @@ function star {
             $branch = 'main'
             if ($global:_rkt_channel -eq 'cantaloupe') { $branch = 'cantaloupe' }
             $remoteVersion = ''
-            $versionUrl = "https://raw.githubusercontent.com/clefspear/starcommand/$branch/VERSION"
+            $versionUrl = "https://raw.githubusercontent.com/clefspear/starcommand/$branch/docs/VERSION"
             if (Get-Command curl.exe -ErrorAction SilentlyContinue) {
                 $remoteVersion = & curl.exe -fsSL --ssl-no-revoke --max-time 5 $versionUrl 2>$null
             } else {
@@ -1165,7 +1165,7 @@ function star {
                     return
                 }
                 $scriptDir = Split-Path $scriptPath -Parent
-                $versionUrl = "https://raw.githubusercontent.com/clefspear/starcommand/$branch/VERSION"
+                $versionUrl = "https://raw.githubusercontent.com/clefspear/starcommand/$branch/docs/VERSION"
                 $tempVersion = [System.IO.Path]::GetTempFileName()
                 $versionOk = $false
                 try {
@@ -1185,7 +1185,9 @@ function star {
                 }
                 Copy-Item $scriptPath "$scriptPath.bak" -Force
                 Move-Item $tempFile $scriptPath -Force
-                Move-Item $tempVersion (Join-Path $scriptDir 'VERSION') -Force
+                $docsDir = Join-Path $scriptDir 'docs'
+                New-Item -ItemType Directory -Path $docsDir -Force | Out-Null
+                Move-Item $tempVersion (Join-Path $docsDir 'VERSION') -Force
                 [Console]::WriteLine("Updated to v$remoteVersion. Open a new tab to take effect.")
                 Remove-Item $script:RktUpdateCache -Force -ErrorAction SilentlyContinue
             } catch {

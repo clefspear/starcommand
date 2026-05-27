@@ -3,7 +3,7 @@
 # Deterministic rocket + starfield greeting for zsh
 # Ported from fish_greeting.fish
 
-_RKT_VERSION="$(cat "${0:A:h}/VERSION" 2>/dev/null || echo "0.0.0")"
+_RKT_VERSION="$(cat "${0:A:h}/../docs/VERSION" 2>/dev/null || echo "0.0.0")"
 _RKT_UPDATE_CACHE="$HOME/.config/zsh/rocket_update_check"
 
 _rkt_is_newer_version() {
@@ -44,7 +44,7 @@ _rkt_update_check_background() {
   local branch="main"
   _rkt_load_settings
   [[ "$_rkt_channel" == "cantaloupe" ]] && branch="cantaloupe"
-  ( curl -fsSL --max-time 3 "https://raw.githubusercontent.com/clefspear/starcommand/${branch}/VERSION" 2>/dev/null \
+  ( curl -fsSL --max-time 3 "https://raw.githubusercontent.com/clefspear/starcommand/${branch}/docs/VERSION" 2>/dev/null \
       | { IFS= read -r v; printf '%s\n%s\n' "$now" "${v:-}"; } \
       > "$_RKT_UPDATE_CACHE" ) 2>/dev/null &
   disown
@@ -932,7 +932,7 @@ star() {
       _rkt_load_settings
       local branch="main"
       [[ "$_rkt_channel" == "cantaloupe" ]] && branch="cantaloupe"
-      local remote_version=$(curl -fsSL --max-time 5 "https://raw.githubusercontent.com/clefspear/starcommand/${branch}/VERSION" 2>/dev/null)
+      local remote_version=$(curl -fsSL --max-time 5 "https://raw.githubusercontent.com/clefspear/starcommand/${branch}/docs/VERSION" 2>/dev/null)
       if [[ -z $remote_version ]]; then
         echo "Failed to check for updates. Visit https://github.com/clefspear/starcommand/releases"
         return 1
@@ -970,7 +970,7 @@ star() {
         return 1
       fi
       local script_dir="${script_path:h}"
-      local version_url="https://raw.githubusercontent.com/clefspear/starcommand/${branch}/VERSION"
+      local version_url="https://raw.githubusercontent.com/clefspear/starcommand/${branch}/docs/VERSION"
       local temp_version
       temp_version=$(mktemp 2>/dev/null) || temp_version="/tmp/starcommand_version.$$"
       local version_http
@@ -982,7 +982,7 @@ star() {
       fi
       cp "$script_path" "${script_path}.bak"
       mv "$temp_file" "$script_path"
-      mv "$temp_version" "$script_dir/VERSION"
+      mkdir -p "$script_dir/../docs" && mv "$temp_version" "$script_dir/../docs/VERSION"
       echo "Updated to v$remote_version. Open a new tab to take effect."
       rm -f "$_RKT_UPDATE_CACHE"
       ;;
@@ -1366,13 +1366,13 @@ _starcommand_install() {
   mkdir -p "$install_dir" || { echo "Could not create $install_dir" >&2; return 1; }
 
   # Download self and VERSION to a stable location
-  local version_url="https://raw.githubusercontent.com/${repo}/${branch}/VERSION"
+  local version_url="https://raw.githubusercontent.com/${repo}/${branch}/docs/VERSION"
   if command -v curl >/dev/null 2>&1; then
     curl -fsSL "$raw_url" -o "$install_path" || { echo "Download failed" >&2; return 1; }
-    curl -fsSL "$version_url" -o "${install_dir}/VERSION" 2>/dev/null || true
+    mkdir -p "${install_dir}/docs" && curl -fsSL "$version_url" -o "${install_dir}/docs/VERSION" 2>/dev/null || true
   elif command -v wget >/dev/null 2>&1; then
     wget -q "$raw_url" -O "$install_path" || { echo "Download failed" >&2; return 1; }
-    wget -q "$version_url" -O "${install_dir}/VERSION" 2>/dev/null || true
+    mkdir -p "${install_dir}/docs" && wget -q "$version_url" -O "${install_dir}/docs/VERSION" 2>/dev/null || true
   else
     echo "Need curl or wget to install starcommand." >&2
     return 1
