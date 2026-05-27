@@ -1,5 +1,5 @@
 # Created By: Peter Azmy
-set -g _RKT_VERSION (cat (dirname (status filename))/../docs/VERSION 2>/dev/null; or echo "0.0.0")
+set -g _RKT_VERSION (cat (dirname (status filename))/VERSION 2>/dev/null; or echo "0.0.0")
 set -g _RKT_UPDATE_CACHE ~/.config/fish/rocket_update_check
 
 function _rkt_is_newer_version --argument-names remote local_v
@@ -970,7 +970,7 @@ function star --description "Save / browse / preview rocket palettes"
             end
             cp "$script_path" "$script_path.bak"
             mv "$temp_file" "$script_path"
-            mkdir -p "$script_dir/../docs"; and mv "$temp_version" "$script_dir/../docs/VERSION"
+            mv "$temp_version" "$script_dir/VERSION"
             echo "Updated to v$remote_version. Open a new tab to take effect."
             rm -f $_RKT_UPDATE_CACHE
 
