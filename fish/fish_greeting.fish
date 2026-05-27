@@ -153,7 +153,8 @@ function _rkt_print_option --description "Print '(a | b | ...)' with the active 
 end
 
 
-function _gen_rocket_palette --description "6-color palette with distinct hues per role"
+# DEPRECATED — HSL-based generator, kept as reference for color-theme previews.
+function _rkt_gen_rocket_palette_hsl --description "HSL-based palette (deprecated)"
     set --local h_base (_rkt_prng_range 0 359)
     set --local scheme (_rkt_prng_range 0 4)
     set --local sat (_rkt_prng_range 65 90)
@@ -179,6 +180,32 @@ function _gen_rocket_palette --description "6-color palette with distinct hues p
     for off in $offs
         set --local h (math "($h_base + $off) % 360")
         _hsl_to_hex $h $sat $light
+    end
+end
+
+function _gen_rocket_palette --description "6-color palette across full 24-bit space"
+    _rkt_gen_rocket_palette_24bit
+end
+
+function _rkt_gen_rocket_palette_24bit --description "24-bit palette generator with theme visibility"
+    set --local theme dark
+    if set -q _rkt_terminal_theme
+        set theme $_rkt_terminal_theme
+    end
+    set --local r g b
+    for i in (seq 6)
+        while true
+            set r (_rkt_prng_range 0 255)
+            set g (_rkt_prng_range 0 255)
+            set b (_rkt_prng_range 0 255)
+            set --local brightness (math "(299 * $r + 587 * $g + 114 * $b) / 1000")
+            if test "$theme" = light
+                if test $brightness -le 200; break; end
+            else
+                if test $brightness -ge 60; break; end
+            end
+        end
+        printf "%02x%02x%02x\n" $r $g $b
     end
 end
 
@@ -666,13 +693,21 @@ function star --description "Save / browse / preview rocket palettes"
                 set _rkt_ansi 30
             end
 
+            set --local _rkt_seen
             echo ""
             for i in (seq $n)
                 _rkt_prng_seed
                 if $has_rockets; and $_rkt_alive; and test $_rkt_subframe -eq 0
                     set _rkt_flame_idx (_rkt_prng_range 0 1)
                 end
-                set --local p (_gen_rocket_palette)
+                set --local p
+                set --local _rkt_pal_str
+                while true
+                    set p (_gen_rocket_palette)
+                    set _rkt_pal_str (string join " " $p)
+                    if not contains -- "$_rkt_pal_str" $_rkt_seen; break; end
+                end
+                set -a _rkt_seen $_rkt_pal_str
                 printf "%4d. " $i
                 if $has_rockets; and $_rkt_alive
                     set --local _rkt_row

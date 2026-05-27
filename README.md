@@ -23,6 +23,8 @@ A lot.
 
 Every shell you open rolls a fresh palette from a high-entropy seed, so two identical rockets appearing twice in a lifetime is statistically impossible. Every tab is — visually — the first time anyone has ever seen that exact rocket.
 
+Within a single `star explore` run, every palette is guaranteed unique — the deduplication guard ensures you never see the same six-hex code twice, even across thousands of rolls.
+
 But the kicker: it's all reproducible. Save a palette to favorites and you've saved the *entire visual identity*. Same six hex codes always produce the same 18 stars in the same 18 positions with the same flame. The palette is the spec.
 
 ![star-history](docs/star-history.png)

@@ -334,7 +334,9 @@ rkt_render_flame() {
 
 # ── Palette generation ─────────────────────────────────────────────────────────
 
-rkt_gen_rocket_palette() {
+# DEPRECATED — HSL-based generator, kept as reference for color-theme previews.
+# Use rkt_gen_rocket_palette (the 24-bit version above) for random rolls.
+_rkt_gen_rocket_palette_hsl() {
     local h_base scheme sat light offs h
     rkt_prng_range 0 359; h_base=$_RKT_PRNG_RET
     rkt_prng_range 0 4;   scheme=$_RKT_PRNG_RET
@@ -374,6 +376,27 @@ rkt_gen_rocket_palette() {
         bi = int((b + m) * 255 + 0.5)
         printf "%02x%02x%02x\n", ri, gi, bi
     }'
+}
+
+rkt_gen_rocket_palette() { _rkt_gen_rocket_palette_24bit "$@"; }
+
+_rkt_gen_rocket_palette_24bit() {
+    local theme="${_RKT_TERMINAL_THEME:-${_rkt_terminal_theme:-dark}}"
+    local r g b brightness i
+    for i in 1 2 3 4 5 6; do
+        while :; do
+            rkt_prng_range 0 255; r=$_RKT_PRNG_RET
+            rkt_prng_range 0 255; g=$_RKT_PRNG_RET
+            rkt_prng_range 0 255; b=$_RKT_PRNG_RET
+            brightness=$(( (299 * r + 587 * g + 114 * b) / 1000 ))
+            if [[ "$theme" == light ]]; then
+                (( brightness <= 200 )) && break
+            else
+                (( brightness >= 60 )) && break
+            fi
+        done
+        printf "%02x%02x%02x\n" "$r" "$g" "$b"
+    done
 }
 
 _rocket_record_history() {
@@ -827,6 +850,7 @@ star() {
             fi
             local _rkt_ansi=97
             [[ "$_rkt_terminal_theme" == light ]] && _rkt_ansi=30
+            local -A _rkt_seen=()
             echo ""
             local i
             for ((i=1; i<=n; i++)); do
@@ -835,7 +859,14 @@ star() {
                     rkt_prng_range 0 1
                     _rkt_flame_idx=$_RKT_PRNG_RET
                 fi
-                local -a p=($(rkt_gen_rocket_palette))
+                local -a p=()
+                local _rkt_pal_str=""
+                while :; do
+                    p=($(rkt_gen_rocket_palette))
+                    _rkt_pal_str="${p[*]}"
+                    [[ -z "${_rkt_seen[$_rkt_pal_str]:-}" ]] && break
+                done
+                _rkt_seen[$_rkt_pal_str]=1
                 printf "%4d. " "$i"
                 if $has_rockets && $_rkt_alive; then
                     local _rkt_row

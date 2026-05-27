@@ -190,7 +190,8 @@ _rkt_print_option() {
   printf ')'
 }
 
-_gen_rocket_palette() {
+# DEPRECATED — HSL-based generator, kept as reference for color-theme previews.
+_rkt_gen_rocket_palette_hsl() {
   emulate -L zsh
   typeset -g -a _RKT_GEN_PALETTE=()
   _rkt_prng_range 0 359; local h_base=$_RKT_PRNG_RET
@@ -232,6 +233,30 @@ _gen_rocket_palette() {
     bi = int((b + m) * 255 + 0.5)
     printf "%02x%02x%02x\n", ri, gi, bi
   }')}")
+}
+
+_gen_rocket_palette() { _rkt_gen_rocket_palette_24bit "$@"; }
+
+_rkt_gen_rocket_palette_24bit() {
+  emulate -L zsh
+  local theme="${_rkt_terminal_theme:-dark}"
+  local -a palette=()
+  local i r g b brightness
+  for i in {1..6}; do
+    while :; do
+      _rkt_prng_range 0 255; r=$_RKT_PRNG_RET
+      _rkt_prng_range 0 255; g=$_RKT_PRNG_RET
+      _rkt_prng_range 0 255; b=$_RKT_PRNG_RET
+      brightness=$(( (299 * r + 587 * g + 114 * b) / 1000 ))
+      if [[ "$theme" == light ]]; then
+        (( brightness <= 200 )) && break
+      else
+        (( brightness >= 60 )) && break
+      fi
+    done
+    palette+=($(printf "%02x%02x%02x" "$r" "$g" "$b"))
+  done
+  typeset -g -a _RKT_GEN_PALETTE=("${palette[@]}")
 }
 
 _rocket_record_history() {
@@ -681,6 +706,7 @@ star() {
       fi
       local _rkt_ansi=97
       [[ "$_rkt_terminal_theme" == light ]] && _rkt_ansi=30
+      local -A _rkt_seen=()
       echo ''
       for ((i=1; i<=n; i++)); do
         _rkt_prng_seed
@@ -688,7 +714,15 @@ star() {
           _rkt_prng_range 0 1
           _rkt_flame_idx=$_RKT_PRNG_RET
         fi
-        local -a p=($(_gen_rocket_palette))
+        local -a p=()
+        local _rkt_pal_str=""
+        while :; do
+          _gen_rocket_palette
+          p=("${_RKT_GEN_PALETTE[@]}")
+          _rkt_pal_str="${p[*]}"
+          [[ -z "${_rkt_seen[$_rkt_pal_str]:-}" ]] && break
+        done
+        _rkt_seen[$_rkt_pal_str]=1
         printf "%4d. " "$i"
         if $has_rockets && $_rkt_alive; then
           local _rkt_row
