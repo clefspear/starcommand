@@ -28,9 +28,7 @@ $starcommandPath = Join-Path $installDir 'starcommand.ps1'
 # 3. Download starcommand.ps1 and VERSION
 Invoke-WebRequest -UseBasicParsing -Uri "$rawBase/starcommand.ps1" -OutFile $starcommandPath
 $versionUrl = "https://raw.githubusercontent.com/$repo/$branch/docs/VERSION"
-$docsDir = Join-Path $installDir 'docs'
-New-Item -ItemType Directory -Path $docsDir -Force | Out-Null
-Invoke-WebRequest -UseBasicParsing -Uri $versionUrl -OutFile (Join-Path $docsDir 'VERSION')
+Invoke-WebRequest -UseBasicParsing -Uri $versionUrl -OutFile (Join-Path $installDir 'VERSION')
 
 # 4. Ensure execution policy allows scripts. Execution policy is a Windows-only
 #    concept; PS7 on macOS/Linux ignores it, so skip there to avoid a noisy

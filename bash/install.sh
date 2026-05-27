@@ -52,12 +52,10 @@ else
     mkdir -p "$INSTALL_DIR"
     if command -v curl >/dev/null 2>&1; then
         curl -fsSL "${RAW_BASE}/${GREETING_FILE}" -o "$INSTALL_PATH"
-        mkdir -p "${INSTALL_DIR}/docs"
-        curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/docs/VERSION" -o "${INSTALL_DIR}/docs/VERSION"
+        curl -fsSL "https://raw.githubusercontent.com/${REPO}/${BRANCH}/docs/VERSION" -o "${INSTALL_DIR}/VERSION"
     elif command -v wget >/dev/null 2>&1; then
         wget -q "${RAW_BASE}/${GREETING_FILE}" -O "$INSTALL_PATH"
-        mkdir -p "${INSTALL_DIR}/docs"
-        wget -q "https://raw.githubusercontent.com/${REPO}/${BRANCH}/docs/VERSION" -O "${INSTALL_DIR}/docs/VERSION"
+        wget -q "https://raw.githubusercontent.com/${REPO}/${BRANCH}/docs/VERSION" -O "${INSTALL_DIR}/VERSION"
     else
         echo "Need curl or wget to download $GREETING_FILE." >&2
         exit 1
