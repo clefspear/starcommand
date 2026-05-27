@@ -3,7 +3,7 @@
 # starcommand.sh — Portable rocket greeting for Bash
 # Implements xorshift32 PRNG for cross-shell deterministic output
 
-_RKT_VERSION="$(cat "$(dirname "${BASH_SOURCE[0]}")/VERSION" 2>/dev/null || echo "0.0.0")"
+_RKT_VERSION="$(cat "$(dirname "${BASH_SOURCE[0]}")/../docs/VERSION" 2>/dev/null || echo "0.0.0")"
 _RKT_UPDATE_CACHE="$HOME/.config/bash/rocket_update_check"
 
 _rkt_is_newer_version() {
@@ -44,7 +44,7 @@ _rkt_update_check_background() {
     local branch="main"
     _rkt_load_settings
     [[ "$_rkt_channel" == "cantaloupe" ]] && branch="cantaloupe"
-    ( curl -fsSL --max-time 3 "https://raw.githubusercontent.com/clefspear/starcommand/${branch}/VERSION" 2>/dev/null \
+    ( curl -fsSL --max-time 3 "https://raw.githubusercontent.com/clefspear/starcommand/${branch}/docs/VERSION" 2>/dev/null \
         | { IFS= read -r v; printf '%s\n%s\n' "$now" "${v:-}"; } \
         > "$_RKT_UPDATE_CACHE" ) 2>/dev/null &
     disown
@@ -60,7 +60,7 @@ _rkt_update_check_nudge() {
     rkt_set_color grey
     local changelog_branch=main
     [[ "$_rkt_channel" == "cantaloupe" ]] && changelog_branch=cantaloupe
-    echo "(starcommand v$cached_version available — run 'star update' — https://github.com/clefspear/starcommand/blob/$changelog_branch/CHANGELOG.md)"
+    echo "(starcommand v$cached_version available — run 'star update' — https://github.com/clefspear/starcommand/blob/$changelog_branch/docs/CHANGELOG.md)"
     rkt_set_color normal
 }
 
@@ -1082,7 +1082,7 @@ star() {
             _rkt_load_settings
             local branch="main"
             [[ "$_rkt_channel" == "cantaloupe" ]] && branch="cantaloupe"
-            local remote_version=$(curl -fsSL --max-time 5 "https://raw.githubusercontent.com/clefspear/starcommand/${branch}/VERSION" 2>/dev/null)
+            local remote_version=$(curl -fsSL --max-time 5 "https://raw.githubusercontent.com/clefspear/starcommand/${branch}/docs/VERSION" 2>/dev/null)
             if [[ -z $remote_version ]]; then
                 echo "Failed to check for updates. Visit https://github.com/clefspear/starcommand/releases"
                 return 1
@@ -1120,7 +1120,7 @@ star() {
                 return 1
             fi
             local script_dir="$(dirname "$script_path")"
-            local version_url="https://raw.githubusercontent.com/clefspear/starcommand/${branch}/VERSION"
+            local version_url="https://raw.githubusercontent.com/clefspear/starcommand/${branch}/docs/VERSION"
             local temp_version
             temp_version=$(mktemp 2>/dev/null) || temp_version="/tmp/starcommand_version.$$"
             local version_http
@@ -1132,7 +1132,7 @@ star() {
             fi
             cp "$script_path" "${script_path}.bak"
             mv "$temp_file" "$script_path"
-            mv "$temp_version" "$script_dir/VERSION"
+            mkdir -p "$script_dir/../docs" && mv "$temp_version" "$script_dir/../docs/VERSION"
             echo "Updated to v$remote_version. Open a new tab to take effect."
             rm -f "$_RKT_UPDATE_CACHE"
             ;;
